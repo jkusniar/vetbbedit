@@ -27,8 +27,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/jkusniar/vetbbedit"
 )
+
+// generate browser client. Rerun every time client directory contents are changed!
+//go:generate go-bindata -pkg http -o client.go client/...
 
 // Server serves REST API and client web application
 type Server struct {
@@ -42,7 +46,12 @@ type Server struct {
 // Serve starts HTTP server.
 // Method blocks until server stopped from another goroutine or error occurs.
 func (s *Server) Serve(port uint) error {
-	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port)}
+	mux := http.NewServeMux()
+	mux.Handle("/",
+		http.FileServer(
+			&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "client"}))
+
+	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
 
 	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
