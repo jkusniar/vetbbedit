@@ -36,6 +36,7 @@ type Server struct {
 	NewsService         vetbbedit.NewsService
 	ServicesService     vetbbedit.ServicesService
 	OpeningHoursService vetbbedit.OpeningHoursService
+	ConfigService       vetbbedit.ConfigService
 }
 
 // Serve starts HTTP server.

@@ -39,10 +39,12 @@ func NewNewsService(pageDir string) *NewsService {
 	return &NewsService{path.Join(pageDir, dataSubDir, "news.json")}
 }
 
+// Save stores ItemData in json file
 func (s *NewsService) Save(i *vetbbedit.ItemData) error {
 	return jsonSave(i, s.fileName)
 }
 
+// Load returns ItemData from json file
 func (s *NewsService) Load() (i *vetbbedit.ItemData, err error) {
 	err = jsonLoad(&i, s.fileName)
 	return
@@ -58,10 +60,12 @@ func NewServicesService(pageDir string) *ServicesService {
 	return &ServicesService{path.Join(pageDir, dataSubDir, "services.json")}
 }
 
+// Save stores ItemData in json file
 func (s *ServicesService) Save(i *vetbbedit.ItemData) error {
 	return jsonSave(i, s.fileName)
 }
 
+// Load returns ItemData from json file
 func (s *ServicesService) Load() (i *vetbbedit.ItemData, err error) {
 	err = jsonLoad(&i, s.fileName)
 	return
@@ -77,10 +81,12 @@ func NewOpeningHoursService(pageDir string) *OpeningHoursService {
 	return &OpeningHoursService{path.Join(pageDir, dataSubDir, "hours.json")}
 }
 
+// Save stores OpeningHours in json file
 func (s *OpeningHoursService) Save(o *vetbbedit.OpeningHours) error {
 	return jsonSave(o, s.fileName)
 }
 
+// Load returns OpeningHours from json file
 func (s *OpeningHoursService) Load() (o *vetbbedit.OpeningHours, err error) {
 	err = jsonLoad(&o, s.fileName)
 	return

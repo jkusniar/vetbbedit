@@ -51,8 +51,13 @@ type ServicesService interface {
 	Load() (*ItemData, error)
 }
 
-// NewsService manges opening hours data (custom data file, default: data/hours.json)
+// OpeningHoursService manges opening hours data (custom data file, default: data/hours.json)
 type OpeningHoursService interface {
 	Save(o *OpeningHours) error
 	Load() (*OpeningHours, error)
+}
+
+// ConfigService updates hugo configuration data (config.json)
+type ConfigService interface {
+	UpdateCopyrightYears() error
 }

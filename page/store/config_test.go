@@ -19,27 +19,37 @@
 
 */
 
-package vetbbedit
+package store
 
-// Config parameter from hugo config.json
-type configParam struct {
-	Description    string `json:"description"`
-	Author         string `json:"author"`
-	CopyrightYears string `json:"copyrightYears"`
-}
+import (
+	"testing"
+	"time"
+)
 
-// Hugo config.json
-type config struct {
-	BaseURL        string      `json:"baseurl"`
-	LanguageCode   string      `json:"languageCode"`
-	Title          string      `json:"title"`
-	DisableRSS     string      `json:"disableRSS"`
-	DisableSitemap string      `json:"disableSitemap"`
-	MetadataFormat string      `json:"metaDataFormat"`
-	Params         configParam `json:"params"`
-}
+func TestCopyrightYearsTo(t *testing.T) {
+	const tf = "2006-Jan-02"
+	cases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"past", "2015-Dec-31", "2015"},
+		{"current_1", "2016-Jan-01", "2016"},
+		{"current_2", "2016-Dec-31", "2016"},
+		{"future_1", "2017-Jan-01", "2016 - 2017"},
+		{"future_2", "2117-Jan-01", "2016 - 2117"},
+	}
 
-// NewsService manages hugo configuration data (config.json)
-type ConfigService interface {
-	UpdateCopyrightYears() error
+	for _, c := range cases {
+		now, err := time.Parse(tf, c.input)
+		if err != nil {
+			t.Fatalf("Error parsing test data %s: %s", c.input, err.Error())
+		}
+
+		actual := copyrightYearsTo(now)
+		if actual != c.expected {
+			t.Errorf("Test '%s' expects '%s' but was '%s'",
+				c.name, c.expected, actual)
+		}
+	}
 }
