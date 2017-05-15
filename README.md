@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://raw.githubusercontent.com/jkusniar/lara/master/LICENSE)
 
-Web based editor of custom page [veterinabb.sk](http://veterinabb.sk) using [hugo](https://gohugo.io/) page generator.
+Web based page editor for [veterinabb.sk](http://veterinabb.sk) using [hugo](https://gohugo.io/).
 
 ## Install
 
