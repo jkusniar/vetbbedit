@@ -1,0 +1,57 @@
+/*
+
+   Copyright (C) 2017 Contributors as noted in the AUTHORS file
+
+   This file is part of vetbbedit, veterinabb.sk page editor.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
+
+package http
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/jkusniar/vetbbedit"
+)
+
+// Server serves REST API and client web application
+type Server struct {
+	srv                 *http.Server
+	NewsService         vetbbedit.NewsService
+	ServicesService     vetbbedit.ServicesService
+	OpeningHoursService vetbbedit.OpeningHoursService
+}
+
+// Serve starts HTTP server.
+// Method blocks until server stopped from another goroutine or error occurs.
+func (s *Server) Serve(port uint) error {
+	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port)}
+
+	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return err
+	}
+
+	return nil
+}
+
+// Shutdown stops server gracefully
+func (s *Server) Shutdown() error {
+	log.Println("Server going down...")
+	return s.srv.Shutdown(context.Background())
+}
