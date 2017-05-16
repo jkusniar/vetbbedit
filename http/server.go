@@ -50,12 +50,12 @@ func (s *Server) Serve(port uint, devMode bool) error {
 	mux := http.NewServeMux()
 
 	if devMode {
-		mux.Handle("/", http.FileServer(http.Dir(path.Join("http", "client"))))
+		mux.Handle("/", http.FileServer(http.Dir(path.Join("http", "gui", "dist"))))
 	} else {
 		mux.Handle("/",
 			http.FileServer(
 				&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo,
-					Prefix: "client"}))
+					Prefix: "gui/dist"}))
 	}
 
 	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
