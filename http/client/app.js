@@ -1,8 +1,15 @@
 "use strict";
 
+Vue.use(VueMaterial);
+
 new Vue({
     el: '#app',
     data: {
-        greeting: 'Vetbb editor is running!'
+        greeting: 'Hellou!'
+    },
+    methods: {
+        toggleSideNav: function() {
+            this.$refs.sideNav.toggle();
+        }
     }
 });
