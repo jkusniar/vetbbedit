@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 
 	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/jkusniar/vetbbedit"
@@ -45,11 +46,17 @@ type Server struct {
 
 // Serve starts HTTP server.
 // Method blocks until server stopped from another goroutine or error occurs.
-func (s *Server) Serve(port uint) error {
+func (s *Server) Serve(port uint, devMode bool) error {
 	mux := http.NewServeMux()
-	mux.Handle("/",
-		http.FileServer(
-			&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "client"}))
+
+	if devMode {
+		mux.Handle("/", http.FileServer(http.Dir(path.Join("http", "client"))))
+	} else {
+		mux.Handle("/",
+			http.FileServer(
+				&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo,
+					Prefix: "client"}))
+	}
 
 	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
 

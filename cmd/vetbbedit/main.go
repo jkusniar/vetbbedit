@@ -38,8 +38,10 @@ import (
 
 var (
 	printVersion = flag.Bool("v", false, "print version and exit")
-	port         = flag.Uint("port", uint(8080), "http server port [env VETBB_PORT]")
-	localDir     *string
+	devMode      = flag.Bool("devMode", false,
+		"development mode. Serve static files from http/client dir")
+	port     = flag.Uint("port", uint(8080), "http server port [env VETBB_PORT]")
+	localDir *string
 
 	// GIT repo parameters
 	repoURL = flag.String("repoURL", "git@github.com:jkusniar/veterinabb.sk.git",
@@ -105,7 +107,7 @@ func main() {
 	}()
 
 	// showtime
-	if err := srv.Serve(*port); err != nil {
+	if err := srv.Serve(*port, *devMode); err != nil {
 		log.Fatalf("FATAL: starting server failed: %+v\n", err)
 	}
 }
