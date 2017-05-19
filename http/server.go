@@ -28,7 +28,7 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/elazarl/go-bindata-assetfs"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/jkusniar/vetbbedit"
 )
 
@@ -47,6 +47,18 @@ type Server struct {
 // Serve starts HTTP server.
 // Method blocks until server stopped from another goroutine or error occurs.
 func (s *Server) Serve(port uint, devMode bool) error {
+
+	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: s.getServeMux(devMode)}
+
+	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return err
+	}
+
+	return nil
+}
+
+// create http server URL multiplexer
+func (s *Server) getServeMux(devMode bool) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	if devMode {
@@ -58,13 +70,10 @@ func (s *Server) Serve(port uint, devMode bool) error {
 					Prefix: "client"}))
 	}
 
-	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: mux}
+	mux.HandleFunc("/news", s.serveNews)
+	mux.HandleFunc("/services", s.serveServices)
 
-	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return err
-	}
-
-	return nil
+	return mux
 }
 
 // Shutdown stops server gracefully
