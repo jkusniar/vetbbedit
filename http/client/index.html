@@ -2,11 +2,14 @@
 <html>
 <head>
     <title>veterinabb.sk editor</title>
+
     <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700,400italic">
     <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://unpkg.com/vue-material/dist/vue-material.css">
+
     <script src="https://unpkg.com/vue/dist/vue.js"></script>
     <script src="https://unpkg.com/vue-material"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -29,13 +32,14 @@
     </md-sidenav>
 
     <div class="main-content">
-        <p>{{ greeting }}</p>
+        <md-input-container>
+            <label>News text</label>
+            <md-input id="field1" placeholder="Type some news" v-on:keyup="onNewNews" v-model="newNews"></md-input>
+        </md-input-container>
+
         <md-list>
-            <md-list-item>
-                <md-icon>info_outline</md-icon> <span>DOVOLENKA : 12.5.2017 A 13.5.2017 A V SOBOTU 20.5.2017 </span>
-            </md-list-item>
-            <md-list-item>
-                <md-icon>info_outline</md-icon> <span>DOVOLENKA : 12.7.2017 A 13.7.2017 A V SOBOTU 20.7.2017 </span>
+            <md-list-item v-for="item in news.items">
+                <md-icon>info_outline</md-icon> <span> {{ item }}</span>
             </md-list-item>
         </md-list>
     </div>
