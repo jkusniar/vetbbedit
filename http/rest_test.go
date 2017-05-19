@@ -60,6 +60,20 @@ func (s *servicesMock) Load() (i *vetbbedit.ItemData, err error) {
 	return
 }
 
+type hoursMock struct{}
+
+// Save is mock implementation
+func (s *hoursMock) Save(i *vetbbedit.OpeningHours) error {
+	return nil
+}
+
+// Load is mock implementation
+func (s *hoursMock) Load() (i *vetbbedit.OpeningHours, err error) {
+	i = &vetbbedit.OpeningHours{Days: []vetbbedit.Day{{"m", "11", "22"}},
+		Footnotes: []string{"1", "2"}}
+	return
+}
+
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard) //calm down logger in tests
 	os.Exit(m.Run())
@@ -85,6 +99,9 @@ func TestAllHttpHandlers(t *testing.T) {
 		{"serveNews_PUT_BadJSON",
 			"PUT", "/news", strings.NewReader(`:-)`), 400,
 			"json decode error", true},
+		{"serveNews_PUT_Empty",
+			"PUT", "/news", strings.NewReader(""), 400,
+			"json decode error", true},
 		{"serveNews_POST",
 			"POST", "/news", nil, 405,
 			"bad method POST\n", false},
@@ -102,18 +119,44 @@ func TestAllHttpHandlers(t *testing.T) {
 		{"serveServices_PUT_BadJSON",
 			"PUT", "/services", strings.NewReader(`:-)`), 400,
 			"json decode error", true},
+		{"serveServices_PUT_Empty",
+			"PUT", "/services", strings.NewReader(""), 400,
+			"json decode error", true},
 		{"serveServices_POST",
 			"POST", "/services", nil, 405,
 			"bad method POST\n", false},
 		{"serveServices_DELETE",
 			"DELETE", "/services", nil, 405,
 			"bad method DELETE\n", false},
+
+		{"serveOpeningHours_GET_OK",
+			"GET", "/hours", nil, 200,
+			`{"days":[{"day":"m","am":"11","pm":"22"}],"footnotes":["1","2"]}` + "\n",
+			false},
+		{"serveOpeningHours_PUT_OK",
+			"PUT", "/hours",
+			strings.NewReader(`{"days":[{"day":"m","am":"11","pm":"22"}],"footnotes":["1","2"]}`),
+			200,
+			"", false},
+		{"serveOpeningHours_PUT_BadJSON",
+			"PUT", "/hours", strings.NewReader(`:-)`), 400,
+			"json decode error", true},
+		{"serveOpeningHours_PUT_Empty",
+			"PUT", "/hours", strings.NewReader(""), 400,
+			"json decode error", true},
+		{"serveOpeningHours_POST",
+			"POST", "/hours", nil, 405,
+			"bad method POST\n", false},
+		{"serveOpeningHours_DELETE",
+			"DELETE", "/hours", nil, 405,
+			"bad method DELETE\n", false},
 	}
 
 	handler := (&Server{
-		NewsService:     &newsMock{},
-		ServicesService: &servicesMock{},
-	}).getServeMux(true)
+		NewsService:         &newsMock{},
+		ServicesService:     &servicesMock{},
+		OpeningHoursService: &hoursMock{},
+	}).createServeMux(true)
 
 	for _, tt := range tests {
 		req, err := http.NewRequest(tt.reqMethod, tt.reqURL, tt.reqBody)

@@ -41,14 +41,15 @@ type Server struct {
 	NewsService         vetbbedit.NewsService
 	ServicesService     vetbbedit.ServicesService
 	OpeningHoursService vetbbedit.OpeningHoursService
-	ConfigService       vetbbedit.ConfigService
 }
 
 // Serve starts HTTP server.
 // Method blocks until server stopped from another goroutine or error occurs.
 func (s *Server) Serve(port uint, devMode bool) error {
-
-	s.srv = &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: s.getServeMux(devMode)}
+	s.srv = &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: s.createServeMux(devMode),
+	}
 
 	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
@@ -58,7 +59,7 @@ func (s *Server) Serve(port uint, devMode bool) error {
 }
 
 // create http server URL multiplexer
-func (s *Server) getServeMux(devMode bool) *http.ServeMux {
+func (s *Server) createServeMux(devMode bool) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	if devMode {
@@ -72,6 +73,9 @@ func (s *Server) getServeMux(devMode bool) *http.ServeMux {
 
 	mux.HandleFunc("/news", s.serveNews)
 	mux.HandleFunc("/services", s.serveServices)
+	mux.HandleFunc("/hours", s.serveOpeningHours)
+	mux.HandleFunc("/generate", s.generate)
+	mux.HandleFunc("/upload", s.upload)
 
 	return mux
 }

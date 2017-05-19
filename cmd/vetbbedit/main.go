@@ -90,7 +90,6 @@ func main() {
 		NewsService:         store.NewNewsService(*localDir),
 		ServicesService:     store.NewServicesService(*localDir),
 		OpeningHoursService: store.NewOpeningHoursService(*localDir),
-		ConfigService:       store.NewConfigService(*localDir),
 	}
 
 	// shutdown signal handler

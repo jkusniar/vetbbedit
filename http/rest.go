@@ -127,3 +127,52 @@ func (s *Server) serveServices(w http.ResponseWriter, r *http.Request) {
 		renderNotAllowed(w, r.Method)
 	}
 }
+
+// serveOpeningHours is http handler for services REST API.
+// GET request returns JSON encoded opening hours data from server.
+// PUT request updates data on server from JSON passed in request.
+// Other methods are not allowed
+func (s *Server) serveOpeningHours(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		n, err := s.OpeningHoursService.Load()
+		if err != nil {
+			renderError(w, err)
+			return
+		}
+		renderJSON(w, n)
+
+	case "PUT":
+		var o vetbbedit.OpeningHours
+		if err := decodeJSON(r.Body, &o); err != nil {
+			renderBadJSONError(w, err)
+			return
+		}
+
+		if err := s.OpeningHoursService.Save(&o); err != nil {
+			renderError(w, err)
+		}
+
+	default:
+		renderNotAllowed(w, r.Method)
+	}
+}
+
+// generate page on backend using hugo
+func (s *Server) generate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		renderNotAllowed(w, r.Method)
+		return
+	}
+	// TODO do work and return 201 if OK
+}
+
+// upload generated page to server
+func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		renderNotAllowed(w, r.Method)
+		return
+	}
+
+	// TODO do work and return 201 if OK
+}
