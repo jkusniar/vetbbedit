@@ -2,6 +2,25 @@
 
 Vue.use(VueMaterial);
 
+// vm is vue instance and error is error result returned by axios
+function showError(vm, error) {
+    if (error.response) {
+        console.log(error.response.data);
+        console.log(error.response.status);
+        console.log(error.response.headers);
+        vm.respMsg = error.response.data;
+    } else if (error.request) {
+        console.log(error.request);
+        vm.respMsg = "no response";
+    } else {
+        console.log('Error', error.message);
+        vm.respMsg = error.message;
+    }
+    console.log(error.config);
+
+    vm.showMessage()
+}
+
 new Vue({
     el: '#app',
     data: {
@@ -24,7 +43,7 @@ new Vue({
                     vm.news = response.data.items;
                 })
                 .catch(function (error) {
-                    console.log(error);
+                    showError(vm, error);
                 });
         },
         onNewNews: function (event) {
@@ -34,7 +53,6 @@ new Vue({
             }
         },
         removeItem: function (index) {
-            //console.log("deleting " + index)
             this.news.splice(index, 1);
         },
         saveAndUpload: function () {
@@ -46,21 +64,7 @@ new Vue({
                     vm.showMessage()
                 })
                 .catch(function (error) {
-                    if (error.response) {
-                        console.log(error.response.data);
-                        console.log(error.response.status);
-                        console.log(error.response.headers);
-                        vm.respMsg = error.response.data;
-                    } else if (error.request) {
-                        console.log(error.request);
-                        vm.respMsg = "no response";
-                    } else {
-                        console.log('Error', error.message);
-                        vm.respMsg = error.message;
-                    }
-                    console.log(error.config);
-
-                    vm.showMessage()
+                    showError(vm, error);
                 });
         },
         showMessage: function () {
