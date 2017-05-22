@@ -38,9 +38,9 @@ new Vue({
         getNews: function () {
             this.news = [];
             var vm = this;
-            axios.get('/news')
+            axios.get('/data')
                 .then(function (response) {
-                    vm.news = response.data.items;
+                    vm.news = response.data.news.items;
                 })
                 .catch(function (error) {
                     showError(vm, error);
@@ -58,7 +58,7 @@ new Vue({
         saveAndUpload: function () {
             this.respMsg = "";
             var vm = this;
-            axios.put('/news', {items: this.news})
+            axios.put('/data', {news:{items: this.news}})
                 .then(function (response) {
                     vm.respMsg = "save OK";
                     vm.showMessage()

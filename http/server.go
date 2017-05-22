@@ -71,9 +71,7 @@ func (s *Server) createServeMux(devMode bool) *http.ServeMux {
 					Prefix: "client"}))
 	}
 
-	mux.HandleFunc("/news", s.serveNews)
-	mux.HandleFunc("/services", s.serveServices)
-	mux.HandleFunc("/hours", s.serveOpeningHours)
+	mux.HandleFunc("/data", s.serveData)
 	mux.HandleFunc("/generate", s.generate)
 	mux.HandleFunc("/upload", s.upload)
 

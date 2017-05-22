@@ -68,81 +68,41 @@ func decodeJSON(r io.Reader, v interface{}) error {
 	return json.NewDecoder(r).Decode(v)
 }
 
-// serveNews is http handler for news REST API.
-// GET request returns JSON encoded news data from server.
-// PUT request updates data on server from JSON passed in request.
+type pageData struct {
+	News     vetbbedit.ItemData     `json:"news"`
+	Services vetbbedit.ItemData     `json:"services"`
+	Hours    vetbbedit.OpeningHours `json:"hours"`
+}
+
+// serveData is http handler for data REST API.
+// GET request returns JSON encoded pageData from server.
+// PUT request updates pageData on server from JSON passed in request.
 // Other methods are not allowed
-func (s *Server) serveNews(w http.ResponseWriter, r *http.Request) {
+func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		h, err := s.OpeningHoursService.Load()
+		if err != nil {
+			renderError(w, err)
+			return
+		}
+
 		n, err := s.NewsService.Load()
 		if err != nil {
 			renderError(w, err)
 			return
 		}
-		renderJSON(w, n)
 
-	case "PUT":
-		var n vetbbedit.ItemData
-		if err := decodeJSON(r.Body, &n); err != nil {
-			renderBadJSONError(w, err)
-			return
-		}
-
-		if err := s.NewsService.Save(&n); err != nil {
-			renderError(w, err)
-		}
-
-	default:
-		renderNotAllowed(w, r.Method)
-	}
-}
-
-// serveServices is http handler for services REST API.
-// GET request returns JSON encoded services data from server.
-// PUT request updates data on server from JSON passed in request.
-// Other methods are not allowed
-func (s *Server) serveServices(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		n, err := s.ServicesService.Load()
+		ss, err := s.ServicesService.Load()
 		if err != nil {
 			renderError(w, err)
 			return
 		}
-		renderJSON(w, n)
+
+		renderJSON(w, &pageData{Hours: *h, News: *n, Services: *ss})
 
 	case "PUT":
-		var n vetbbedit.ItemData
-		if err := decodeJSON(r.Body, &n); err != nil {
-			renderBadJSONError(w, err)
-			return
-		}
-
-		if err := s.ServicesService.Save(&n); err != nil {
-			renderError(w, err)
-		}
-
-	default:
-		renderNotAllowed(w, r.Method)
-	}
-}
-
-// serveOpeningHours is http handler for services REST API.
-// GET request returns JSON encoded opening hours data from server.
-// PUT request updates data on server from JSON passed in request.
-// Other methods are not allowed
-func (s *Server) serveOpeningHours(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		n, err := s.OpeningHoursService.Load()
-		if err != nil {
-			renderError(w, err)
-			return
-		}
-		renderJSON(w, n)
-
-	case "PUT":
+		// FIXME!!!
 		var o vetbbedit.OpeningHours
 		if err := decodeJSON(r.Body, &o); err != nil {
 			renderBadJSONError(w, err)
