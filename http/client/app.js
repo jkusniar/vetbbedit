@@ -26,21 +26,26 @@ new Vue({
     data: {
         news: [],
         newNews: "",
+        services: [],
+        newService: "",
+        hours: {},
         respMsg: ""
     },
     mounted: function () {
-        this.getNews();
+        this.getData();
     },
     methods: {
         toggleSideNav: function () {
             this.$refs.sideNav.toggle();
         },
-        getNews: function () {
+        getData: function () {
             this.news = [];
             var vm = this;
             axios.get('/data')
                 .then(function (response) {
                     vm.news = response.data.news.items;
+                    vm.services = response.data.services.items;
+                    vm.hours = response.data.hours;
                 })
                 .catch(function (error) {
                     showError(vm, error);
@@ -52,13 +57,26 @@ new Vue({
                 this.newNews = "";
             }
         },
-        removeItem: function (index) {
+        removeNews: function (index) {
             this.news.splice(index, 1);
+        },
+        onNewService: function (event) {
+            if (this.newService) {
+                this.services.push(this.newService);
+                this.newService = "";
+            }
+        },
+        removeService: function (index) {
+            this.services.splice(index, 1);
         },
         saveAndUpload: function () {
             this.respMsg = "";
             var vm = this;
-            axios.put('/data', {news:{items: this.news}})
+            axios.put('/data', {
+                news: {items: this.news},
+                services: {items: this.services},
+                hours: this.hours
+            })
                 .then(function (response) {
                     vm.respMsg = "save OK";
                     vm.showMessage()

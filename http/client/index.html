@@ -41,7 +41,7 @@
                     <md-list-item v-for="(item, index) in news" v-bind:key="item">
                         <md-icon>info_outline</md-icon>
                         <span> {{ item }}</span>
-                        <md-button class="md-icon-button md-list-action" @click.native="removeItem(index)">
+                        <md-button class="md-icon-button md-list-action" @click.native="removeNews(index)">
                             <md-icon class="md-primary">delete</md-icon>
                         </md-button>
                     </md-list-item>
@@ -49,6 +49,21 @@
             </md-tab>
 
             <md-tab id="services" md-label="Services">
+                <md-input-container>
+                    <label>Service text</label>
+                    <md-input placeholder="Type service text and press enter" @keyup.enter.native="onNewService"
+                              v-model="newService"></md-input>
+                </md-input-container>
+
+                <md-list>
+                    <md-list-item v-for="(item, index) in services" v-bind:key="item">
+                        <md-icon>info_outline</md-icon>
+                        <span> {{ item }}</span>
+                        <md-button class="md-icon-button md-list-action" @click.native="removeService(index)">
+                            <md-icon class="md-primary">delete</md-icon>
+                        </md-button>
+                    </md-list-item>
+                </md-list>
             </md-tab>
             <md-tab id="hours" md-label="Opening hours">
             </md-tab>
