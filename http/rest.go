@@ -102,14 +102,23 @@ func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 		renderJSON(w, &pageData{Hours: *h, News: *n, Services: *ss})
 
 	case "PUT":
-		// FIXME!!!
-		var o vetbbedit.OpeningHours
-		if err := decodeJSON(r.Body, &o); err != nil {
+		var d pageData
+		if err := decodeJSON(r.Body, &d); err != nil {
 			renderBadJSONError(w, err)
 			return
 		}
 
-		if err := s.OpeningHoursService.Save(&o); err != nil {
+		if err := s.OpeningHoursService.Save(&d.Hours); err != nil {
+			renderError(w, err)
+			return
+		}
+
+		if err := s.NewsService.Save(&d.News); err != nil {
+			renderError(w, err)
+			return
+		}
+
+		if err := s.ServicesService.Save(&d.Services); err != nil {
 			renderError(w, err)
 		}
 
