@@ -29,7 +29,15 @@ new Vue({
         services: [],
         newService: "",
         hours: {},
-        respMsg: ""
+        newFootnote: "",
+        respMsg: "",
+        prompt: {
+            title: 'Set hours',
+            placeholder: 'Type hours...',
+            value: "xx",
+            ampm: "",
+            index: -1
+        }
     },
     mounted: function () {
         this.getData();
@@ -68,6 +76,45 @@ new Vue({
         },
         removeService: function (index) {
             this.services.splice(index, 1);
+        },
+        onNewFootnote: function (event) {
+            if (this.newFootnote) {
+                this.hours.footnotes.push(this.newFootnote);
+                this.newFootnote = "";
+            }
+        },
+        removeFootnote: function (index) {
+            this.hours.footnotes.splice(index, 1);
+        },
+        showEditDateDialog: function (index) {
+            console.log(index);
+        },
+        openDialog: function (ref, ampm, index) {
+            // set md-open-from="#id-of-icon-component" md-close-to="#id-of-icon-component"
+            this.prompt.ampm = ampm;
+            this.prompt.index = index;
+
+            if (ampm === "am") {
+                this.prompt.value = this.hours.days[index].am;
+            } else if (ampm === "pm") {
+                this.prompt.value = this.hours.days[index].pm;
+            } else {
+                console.log("Bad value for ampm: " + ampm);
+            }
+
+            this.$refs[ref].open();
+        },
+        closeDialog: function (ref) {
+            this.$refs[ref].close();
+        },
+        onInput: function (newValue) {
+            if (this.prompt.ampm === "am") {
+                this.hours.days[this.prompt.index].am = newValue;
+            } else if (this.prompt.ampm === "pm") {
+                this.hours.days[this.prompt.index].pm = newValue;
+            } else {
+                console.log("Bad value for ampm: " + this.prompt.ampm);
+            }
         },
         saveAndUpload: function () {
             this.respMsg = "";

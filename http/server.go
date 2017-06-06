@@ -51,6 +51,8 @@ func (s *Server) Serve(port uint, devMode bool) error {
 		Handler: s.createServeMux(devMode),
 	}
 
+	log.Printf("serving at http://localhost:%d", port)
+
 	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
 	}
