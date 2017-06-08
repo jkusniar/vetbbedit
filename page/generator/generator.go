@@ -30,29 +30,28 @@ import (
 	"github.com/spf13/hugo/commands"
 )
 
-// HugoGenerator is vetbbedit.GeneratorService implementation
-type HugoGenerator struct {
-	srcDir       string
-	generatedDir string
-	cfgService   vetbbedit.ConfigService
+// Hugo is vetbbedit.GeneratorService implementation
+type Hugo struct {
+	srcDir     string
+	cfgService vetbbedit.ConfigService
 }
 
-// NewHugoGenerator created initialized HugoGenerator structure
-func NewHugoGenerator(srcDir string, cfgServ vetbbedit.ConfigService) *HugoGenerator {
-	return &HugoGenerator{srcDir, path.Join(srcDir, "public"), cfgServ}
+// New creates initialized Hugo structure
+func New(srcDir string, cfgServ vetbbedit.ConfigService) *Hugo {
+	return &Hugo{srcDir, cfgServ}
 }
 
-// Generate generates page from configuration data in g.SrcDir using hugo
-func (g *HugoGenerator) Generate() error {
-
+// Generate generates page from configuration data in g.SrcDir using hugo. Returns generated directory and error if any.
+func (g *Hugo) Generate() (string, error) {
+	generatedDir := path.Join(g.srcDir, "public")
 	if err := g.cfgService.UpdateCopyrightYears(); err != nil {
-		return err
+		return generatedDir, err
 	}
 
-	if err := os.RemoveAll(g.generatedDir); err != nil {
-		return errors.Wrap(err, "error deleting generated page")
+	if err := os.RemoveAll(generatedDir); err != nil {
+		return generatedDir, errors.Wrap(err, "error deleting generated page")
 	}
 
 	commands.HugoCmd.SetArgs([]string{"--source", g.srcDir})
-	return errors.Wrap(commands.HugoCmd.Execute(), "error generating page")
+	return generatedDir, errors.Wrap(commands.HugoCmd.Execute(), "error generating page")
 }

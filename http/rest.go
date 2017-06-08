@@ -127,11 +127,17 @@ func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// generate page
-		if err := s.PageGen.Generate(); err != nil {
+		genDir, err := s.PageGen.Generate()
+		if err != nil {
+			renderError(w, err)
+			return
+		}
+
+		// upload page
+		if err := s.Ftp.Upload(genDir); err != nil {
 			renderError(w, err)
 		}
 
-		// TODO upload page
 		// TODO git commit page
 
 	default:

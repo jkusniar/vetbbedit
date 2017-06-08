@@ -69,14 +69,20 @@ func (s *hoursMock) Save(i *vetbbedit.OpeningHours) error {
 
 // Load is mock implementation
 func (s *hoursMock) Load() (i *vetbbedit.OpeningHours, err error) {
-	i = &vetbbedit.OpeningHours{Days: []vetbbedit.DayDef{{"m", "11", "22"}},
+	i = &vetbbedit.OpeningHours{Days: []vetbbedit.DayDef{{Day: "m", AM: "11", PM: "22"}},
 		Footnotes: []string{"1", "2"}}
 	return
 }
 
 type generatorMock struct{}
 
-func (*generatorMock) Generate() error {
+func (*generatorMock) Generate() (string, error) {
+	return "", nil
+}
+
+type uploaderMock struct{}
+
+func (*uploaderMock) Upload(fromDir string) error {
 	return nil
 }
 
@@ -121,6 +127,7 @@ func TestAllHttpHandlers(t *testing.T) {
 		Services:     &servicesMock{},
 		OpeningHours: &hoursMock{},
 		PageGen:      &generatorMock{},
+		Ftp:          &uploaderMock{},
 	}).createServeMux(true)
 
 	for _, tt := range tests {

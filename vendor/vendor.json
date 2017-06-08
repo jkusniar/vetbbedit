@@ -263,6 +263,12 @@
 			"revisionTime": "2017-05-10T13:15:34Z"
 		},
 		{
+			"checksumSHA1": "KQhA4EQp4Ldwj9nJZnEURlE6aQw=",
+			"path": "github.com/kr/fs",
+			"revision": "2788f0dbd16903de03cb8186e5c7d97b69ad387b",
+			"revisionTime": "2013-11-06T22:25:44Z"
+		},
+		{
 			"checksumSHA1": "u6Fh5nWSW70Yi2/hq/zxPinakD4=",
 			"path": "github.com/kyokomi/emoji",
 			"revision": "ddd4753eac3f6480ca86b16cc6c98d26a0935d17",
@@ -323,15 +329,19 @@
 			"revisionTime": "2017-05-05T04:36:39Z"
 		},
 		{
+			"checksumSHA1": "GM8ioORTp1BH7KraT6GhmrB76t4=",
+			"path": "github.com/pkg/sftp",
+			"revision": "a5f8514e29e90a859e93871b1582e5c81f466f82",
+			"revisionTime": "2017-05-11T00:00:41Z"
+		},
+		{
 			"checksumSHA1": "MnRnniTE94p6DieveIFQxx3PArg=",
-			"origin": "github.com/jkusniar/vetbbedit/vendor/github.com/russross/blackfriday",
 			"path": "github.com/russross/blackfriday",
 			"revision": "0ba0f2b6ed7c475a92e4df8641825cb7a11d1fa3",
 			"revisionTime": "2017-05-09T06:07:14Z"
 		},
 		{
 			"checksumSHA1": "7xtI4YHA5UU4Ra/A5tBZ6rxzqCg=",
-			"origin": "github.com/jkusniar/vetbbedit/vendor/github.com/shurcooL/sanitized_anchor_name",
 			"path": "github.com/shurcooL/sanitized_anchor_name",
 			"revision": "541ff5ee47f1dddf6a5281af78307d921524bcb5",
 			"revisionTime": "2017-05-15T01:32:39Z"
@@ -663,6 +673,30 @@
 		{
 			"path": "go/token",
 			"revision": ""
+		},
+		{
+			"checksumSHA1": "nAu0XmCeC6WnUySyI8R7w4cxAqU=",
+			"path": "golang.org/x/crypto/curve25519",
+			"revision": "e7ba82683099cae71475961448ab8f903ea77c26",
+			"revisionTime": "2017-06-03T05:13:44Z"
+		},
+		{
+			"checksumSHA1": "wGb//LjBPNxYHqk+dcLo7BjPXK8=",
+			"path": "golang.org/x/crypto/ed25519",
+			"revision": "e7ba82683099cae71475961448ab8f903ea77c26",
+			"revisionTime": "2017-06-03T05:13:44Z"
+		},
+		{
+			"checksumSHA1": "LXFcVx8I587SnWmKycSDEq9yvK8=",
+			"path": "golang.org/x/crypto/ed25519/internal/edwards25519",
+			"revision": "e7ba82683099cae71475961448ab8f903ea77c26",
+			"revisionTime": "2017-06-03T05:13:44Z"
+		},
+		{
+			"checksumSHA1": "D2nLWszcu+HSZZUq3CJzDvvALdg=",
+			"path": "golang.org/x/crypto/ssh",
+			"revision": "e7ba82683099cae71475961448ab8f903ea77c26",
+			"revisionTime": "2017-06-03T05:13:44Z"
 		},
 		{
 			"checksumSHA1": "VrzPJyWI6disCgYuVEQzkjqUsJk=",

@@ -35,6 +35,7 @@ import (
 	"github.com/jkusniar/vetbbedit/http"
 	"github.com/jkusniar/vetbbedit/page/generator"
 	"github.com/jkusniar/vetbbedit/page/store"
+	"github.com/jkusniar/vetbbedit/page/uploader"
 )
 
 var (
@@ -91,7 +92,8 @@ func main() {
 		News:         store.NewNewsService(*localDir),
 		Services:     store.NewServicesService(*localDir),
 		OpeningHours: store.NewOpeningHoursService(*localDir),
-		PageGen:      generator.NewHugoGenerator(*localDir, store.NewConfigService(*localDir)),
+		PageGen:      generator.New(*localDir, store.NewConfigService(*localDir)),
+		Ftp:          uploader.New(*sshHost, *sshPort, *sshUser, *sshPass, *sshDir),
 	}
 
 	// shutdown signal handler

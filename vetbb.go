@@ -64,5 +64,10 @@ type ConfigService interface {
 
 // GeneratorService generates page from configuration data
 type GeneratorService interface {
-	Generate() error
+	Generate() (string, error)
+}
+
+// UploaderService uploads generated page to server
+type UploaderService interface {
+	Upload(fromDir string) error
 }

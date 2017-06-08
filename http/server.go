@@ -43,6 +43,7 @@ type Server struct {
 	Services     vetbbedit.ServicesService
 	OpeningHours vetbbedit.OpeningHoursService
 	PageGen      vetbbedit.GeneratorService
+	Ftp          vetbbedit.UploaderService
 }
 
 // Serve starts HTTP server.
