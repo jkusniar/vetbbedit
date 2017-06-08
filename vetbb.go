@@ -26,8 +26,8 @@ type ItemData struct {
 	Items []string `json:"items"`
 }
 
-// Day is JSON encoded day on opening hours
-type Day struct {
+// DayDef is JSON encoded day on opening hours
+type DayDef struct {
 	Day string `json:"day"`
 	AM  string `json:"am"`
 	PM  string `json:"pm"`
@@ -35,7 +35,7 @@ type Day struct {
 
 // OpeningHours is JSON encoded opening hours data
 type OpeningHours struct {
-	Days      []Day    `json:"days"`
+	Days      []DayDef `json:"days"`
 	Footnotes []string `json:"footnotes"`
 }
 

@@ -30,6 +30,7 @@ import (
 	"github.com/spf13/hugo/commands"
 )
 
+// HugoGenerator is vetbbedit.GeneratorService implementation
 type HugoGenerator struct {
 	srcDir       string
 	generatedDir string
