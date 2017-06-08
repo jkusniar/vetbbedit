@@ -81,19 +81,19 @@ type pageData struct {
 func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		h, err := s.OpeningHoursService.Load()
+		h, err := s.OpeningHours.Load()
 		if err != nil {
 			renderError(w, err)
 			return
 		}
 
-		n, err := s.NewsService.Load()
+		n, err := s.News.Load()
 		if err != nil {
 			renderError(w, err)
 			return
 		}
 
-		ss, err := s.ServicesService.Load()
+		ss, err := s.Services.Load()
 		if err != nil {
 			renderError(w, err)
 			return
@@ -108,40 +108,33 @@ func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.OpeningHoursService.Save(&d.Hours); err != nil {
+		// save hours
+		if err := s.OpeningHours.Save(&d.Hours); err != nil {
 			renderError(w, err)
 			return
 		}
 
-		if err := s.NewsService.Save(&d.News); err != nil {
+		// save news
+		if err := s.News.Save(&d.News); err != nil {
 			renderError(w, err)
 			return
 		}
 
-		if err := s.ServicesService.Save(&d.Services); err != nil {
+		// save services
+		if err := s.Services.Save(&d.Services); err != nil {
+			renderError(w, err)
+			return
+		}
+
+		// generate page
+		if err := s.PageGen.Generate(); err != nil {
 			renderError(w, err)
 		}
+
+		// TODO upload page
+		// TODO git commit page
 
 	default:
 		renderNotAllowed(w, r.Method)
 	}
-}
-
-// generate page on backend using hugo
-func (s *Server) generate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		renderNotAllowed(w, r.Method)
-		return
-	}
-	// TODO do work and return 201 if OK
-}
-
-// upload generated page to server
-func (s *Server) upload(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		renderNotAllowed(w, r.Method)
-		return
-	}
-
-	// TODO do work and return 201 if OK
 }

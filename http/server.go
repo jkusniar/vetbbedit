@@ -37,10 +37,12 @@ import (
 
 // Server serves REST API and client web application
 type Server struct {
-	srv                 *http.Server
-	NewsService         vetbbedit.NewsService
-	ServicesService     vetbbedit.ServicesService
-	OpeningHoursService vetbbedit.OpeningHoursService
+	srv *http.Server
+
+	News         vetbbedit.NewsService
+	Services     vetbbedit.ServicesService
+	OpeningHours vetbbedit.OpeningHoursService
+	PageGen      vetbbedit.GeneratorService
 }
 
 // Serve starts HTTP server.
@@ -74,14 +76,15 @@ func (s *Server) createServeMux(devMode bool) *http.ServeMux {
 	}
 
 	mux.HandleFunc("/data", s.serveData)
-	mux.HandleFunc("/generate", s.generate)
-	mux.HandleFunc("/upload", s.upload)
 
 	return mux
 }
 
 // Shutdown stops server gracefully
 func (s *Server) Shutdown() error {
+	if s.srv == nil {
+		return nil
+	}
 	log.Println("Server going down...")
 	return s.srv.Shutdown(context.Background())
 }

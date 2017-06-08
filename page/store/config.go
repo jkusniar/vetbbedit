@@ -31,7 +31,7 @@ import (
 type configParam struct {
 	Description    string `json:"description"`
 	Author         string `json:"author"`
-	CopyrightYears string `json:"copyrightYearsTo"`
+	CopyrightYears string `json:"copyrightYears"`
 }
 
 // Hugo config.json
@@ -39,8 +39,6 @@ type config struct {
 	BaseURL        string      `json:"baseurl"`
 	LanguageCode   string      `json:"languageCode"`
 	Title          string      `json:"title"`
-	DisableRSS     string      `json:"disableRSS"`
-	DisableSitemap string      `json:"disableSitemap"`
 	MetadataFormat string      `json:"metaDataFormat"`
 	Params         configParam `json:"params"`
 }

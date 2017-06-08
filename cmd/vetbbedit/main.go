@@ -33,6 +33,7 @@ import (
 	"syscall"
 
 	"github.com/jkusniar/vetbbedit/http"
+	"github.com/jkusniar/vetbbedit/page/generator"
 	"github.com/jkusniar/vetbbedit/page/store"
 )
 
@@ -87,9 +88,10 @@ func main() {
 
 	// server
 	srv := &http.Server{
-		NewsService:         store.NewNewsService(*localDir),
-		ServicesService:     store.NewServicesService(*localDir),
-		OpeningHoursService: store.NewOpeningHoursService(*localDir),
+		News:         store.NewNewsService(*localDir),
+		Services:     store.NewServicesService(*localDir),
+		OpeningHours: store.NewOpeningHoursService(*localDir),
+		PageGen:      generator.NewHugoGenerator(*localDir, store.NewConfigService(*localDir)),
 	}
 
 	// shutdown signal handler

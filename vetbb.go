@@ -61,3 +61,8 @@ type OpeningHoursService interface {
 type ConfigService interface {
 	UpdateCopyrightYears() error
 }
+
+// GeneratorService generates page from configuration data
+type GeneratorService interface {
+	Generate() error
+}

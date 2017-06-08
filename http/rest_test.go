@@ -74,6 +74,12 @@ func (s *hoursMock) Load() (i *vetbbedit.OpeningHours, err error) {
 	return
 }
 
+type generatorMock struct{}
+
+func (*generatorMock) Generate() error {
+	return nil
+}
+
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard) //calm down logger in tests
 	os.Exit(m.Run())
@@ -111,9 +117,10 @@ func TestAllHttpHandlers(t *testing.T) {
 	}
 
 	handler := (&Server{
-		NewsService:         &newsMock{},
-		ServicesService:     &servicesMock{},
-		OpeningHoursService: &hoursMock{},
+		News:         &newsMock{},
+		Services:     &servicesMock{},
+		OpeningHours: &hoursMock{},
+		PageGen:      &generatorMock{},
 	}).createServeMux(true)
 
 	for _, tt := range tests {
