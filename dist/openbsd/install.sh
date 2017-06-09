@@ -34,5 +34,15 @@ chown _vetbbedit:_vetbbedit /var/vetbbedit/vetbbedit
 cp vetbbedit.rc /etc/rc.d/vetbbedit
 chmod +x /etc/rc.d/vetbbedit
 
-echo "IMPORTANT: fix command line arguments in /etc/rc.d/vetbbedit and run vetbbedit daemon"
-echo "IMPORTANT: SSH KEYS and GIT SETUP"
+# .gitconfig
+cp gitconfig /var/vetbbedit/.gitconfig
+chown _vetbbedit:_vetbbedit /var/vetbbedit/.gitconfig
+
+# ssh keys
+mkdir /var/vetbbedit/.ssh
+chown _vetbbedit:_vetbbedit /var/vetbbedit/.ssh
+ssh-keygen -C "vetbbedit@veterinabb.sk" -f /var/vetbbedit/.ssh/id_rsa -N ''
+
+echo "IMPORTANT MANUAL STEPS BEFORE FIRST START:"
+echo "\tInstall SSH key /var/vetbbedit/.ssh/id_rsa.pub to git server"
+echo "\tFix command line arguments in /etc/rc.d/vetbbedit"
