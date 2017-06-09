@@ -42,6 +42,8 @@ chown _vetbbedit:_vetbbedit /var/vetbbedit/.gitconfig
 mkdir /var/vetbbedit/.ssh
 chown _vetbbedit:_vetbbedit /var/vetbbedit/.ssh
 ssh-keygen -C "vetbbedit@veterinabb.sk" -f /var/vetbbedit/.ssh/id_rsa -N ''
+chown _vetbbedit:_vetbbedit /var/vetbbedit/.ssh/id_rsa
+chown _vetbbedit:_vetbbedit /var/vetbbedit/.ssh/id_rsa.pub
 ssh-keyscan github.com 2>/dev/null > /var/vetbbedit/.ssh/known_hosts
 ssh-keyscan gitlab.com 2>/dev/null >> /var/vetbbedit/.ssh/known_hosts
 chown _vetbbedit:_vetbbedit /var/vetbbedit/.ssh/known_hosts
