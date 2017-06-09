@@ -59,7 +59,7 @@ var (
 	sshUser *string
 	sshPass = flag.String("sshPass", os.Getenv("SOCKSIE_SSH_PASSWORD"),
 		"remote server SSH password [env VETBB_SSH_PASS]")
-	sshDir = flag.String("sshDir", "", "remote server SSH directory [env VETBB_SSH_DIR]")
+	sshDir = flag.String("sshDir", "public_html", "remote server SSH directory [env VETBB_SSH_DIR]")
 )
 
 const version = "v1.0.0"
