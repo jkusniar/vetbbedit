@@ -43,9 +43,6 @@ new Vue({
         this.getData();
     },
     methods: {
-        toggleSideNav: function () {
-            this.$refs.sideNav.toggle();
-        },
         getData: function () {
             this.news = [];
             var vm = this;
