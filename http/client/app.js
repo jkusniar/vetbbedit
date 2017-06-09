@@ -1,7 +1,7 @@
 "use strict";
 
 Vue.use(VueMaterial);
-Vue.use(VueI18n)
+Vue.use(VueI18n);
 
 const i18n = new VueI18n({
     locale: 'sk',  // TODO: set locale from client
@@ -57,7 +57,7 @@ function showError(vm, error) {
         vm.respMsg = error.response.data;
     } else if (error.request) {
         console.log(error.request);
-        vm.respMsg = vm.$t("message.errNoResponse");;
+        vm.respMsg = vm.$t("message.errNoResponse");
     } else {
         console.log('Error', error.message);
         vm.respMsg = error.message;
