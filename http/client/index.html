@@ -20,6 +20,7 @@
 <div id="app">
     <md-toolbar class="md-dense">
         <h2 class="md-title" style="flex: 1">veterinabb.sk</h2>
+        <md-spinner md-indeterminate class="md-accent" v-if="uploading"></md-spinner>
         <md-button class="md-icon-button" @click.native="saveAndUpload">
             <md-icon>backup</md-icon>
         </md-button>

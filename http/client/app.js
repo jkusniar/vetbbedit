@@ -84,7 +84,8 @@ new Vue({
             value: "xx",
             ampm: "",
             index: -1
-        }
+        },
+        uploading: false
     },
     mounted: function () {
         this.getData();
@@ -163,16 +164,19 @@ new Vue({
         saveAndUpload: function () {
             this.respMsg = "";
             var vm = this;
+            vm.uploading = true;
             axios.put('/data', {
                 news: {items: this.news},
                 services: {items: this.services},
                 hours: this.hours
             })
                 .then(function (response) {
+                    vm.uploading = false;
                     vm.respMsg =  vm.$t("message.savedOk");
                     vm.showMessage()
                 })
                 .catch(function (error) {
+                    vm.uploading = false;
                     showError(vm, error);
                 });
         },
