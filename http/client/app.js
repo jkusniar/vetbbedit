@@ -1,6 +1,52 @@
 "use strict";
 
 Vue.use(VueMaterial);
+Vue.use(VueI18n)
+
+const i18n = new VueI18n({
+    locale: 'sk',  // TODO: set locale from client
+    messages: {
+        en: {
+            message: {
+                news: 'News',
+                newsText: 'News text',
+                newsPlaceholder: 'Type news and press enter',
+                services: 'Services',
+                serviceText: 'Service text',
+                servicePlaceholder: 'Type service and press enter',
+                hours: 'Opening hours',
+                day: 'Day',
+                am: 'AM',
+                pm: 'PM',
+                footnoteText: 'New footnote text',
+                footnotePlaceholder: 'Type footnote and press enter',
+                closeBtn: 'Close',
+                savedOk: 'Saved OK',
+                errNoResponse: 'ERROR: No response'
+            }
+        },
+        sk: {
+            message: {
+                news: 'Oznamy',
+                newsText: 'Text oznamu',
+                newsPlaceholder: 'Napíš oznam a stlač enter',
+                services: 'Služby',
+                serviceText: 'Znenie služby',
+                servicePlaceholder: 'Napíš službu a stlač enter',
+                hours: 'Ordinačné hodiny',
+                day: 'Deň',
+                am: 'Doobedu',
+                pm: 'Poobede',
+                footnoteText: 'Text poznámky',
+                footnotePlaceholder: 'Napíš poznámku a stlač enter',
+                closeBtn: 'Zatvoriť',
+                savedOk: 'Uložené OK',
+                errNoResponse: 'CHYBA: server neodpovedal'
+            }
+        }
+    }
+});
+
 
 // vm is vue instance and error is error result returned by axios
 function showError(vm, error) {
@@ -11,7 +57,7 @@ function showError(vm, error) {
         vm.respMsg = error.response.data;
     } else if (error.request) {
         console.log(error.request);
-        vm.respMsg = "no response";
+        vm.respMsg = vm.$t("message.errNoResponse");;
     } else {
         console.log('Error', error.message);
         vm.respMsg = error.message;
@@ -23,6 +69,7 @@ function showError(vm, error) {
 
 new Vue({
     el: '#app',
+    i18n: i18n,
     data: {
         news: [],
         newNews: "",
@@ -122,7 +169,7 @@ new Vue({
                 hours: this.hours
             })
                 .then(function (response) {
-                    vm.respMsg = "save OK";
+                    vm.respMsg =  vm.$t("message.savedOk");
                     vm.showMessage()
                 })
                 .catch(function (error) {

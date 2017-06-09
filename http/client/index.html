@@ -13,6 +13,7 @@
 
     <script src="https://unpkg.com/vue/dist/vue.js"></script>
     <script src="https://unpkg.com/vue-material"></script>
+    <script src="https://unpkg.com/vue-i18n/dist/vue-i18n.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
 <body>
@@ -34,10 +35,10 @@
         </md-dialog-prompt>
 
         <md-tabs md-fixed>
-            <md-tab id="news" md-label="News">
+            <md-tab id="news" v-bind:md-label="$t('message.news')">
                 <md-input-container>
-                    <label>News text</label>
-                    <md-input placeholder="Type news and press enter" @keyup.enter.native="onNewNews"
+                    <label>{{ $t("message.newsText") }}</label>
+                    <md-input v-bind:placeholder="$t('message.newsPlaceholder')" @keyup.enter.native="onNewNews"
                               v-model="newNews"></md-input>
                 </md-input-container>
 
@@ -52,10 +53,10 @@
                 </md-list>
             </md-tab>
 
-            <md-tab id="services" md-label="Services">
+            <md-tab id="services" v-bind:md-label="$t('message.services')">
                 <md-input-container>
-                    <label>Service text</label>
-                    <md-input placeholder="Type service text and press enter" @keyup.enter.native="onNewService"
+                    <label>{{ $t("message.serviceText") }}</label>
+                    <md-input v-bind:placeholder="$t('message.servicePlaceholder')" @keyup.enter.native="onNewService"
                               v-model="newService"></md-input>
                 </md-input-container>
 
@@ -69,13 +70,13 @@
                     </md-list-item>
                 </md-list>
             </md-tab>
-            <md-tab id="hours" md-label="Opening hours">
+            <md-tab id="hours" v-bind:md-label="$t('message.hours')">
                 <md-table>
                     <md-table-header>
                         <md-table-row>
-                            <md-table-head>Day</md-table-head>
-                            <md-table-head>AM</md-table-head>
-                            <md-table-head>PM</md-table-head>
+                            <md-table-head>{{ $t("message.day") }}</md-table-head>
+                            <md-table-head>{{ $t("message.am") }}</md-table-head>
+                            <md-table-head>{{ $t("message.pm") }}</md-table-head>
                         </md-table-row>
                     </md-table-header>
 
@@ -99,8 +100,8 @@
                 </md-table>
 
                 <md-input-container>
-                    <label>New footnote text</label>
-                    <md-input placeholder="Type new footnote text and press enter" @keyup.enter.native="onNewFootnote"
+                    <label>{{ $t("message.footnoteText") }}</label>
+                    <md-input v-bind:placeholder="$t('message.footnotePlaceholder')" @keyup.enter.native="onNewFootnote"
                               v-model="newFootnote"></md-input>
                 </md-input-container>
 
@@ -119,7 +120,7 @@
 
     <md-snackbar ref="snackbar">
         <span>{{ respMsg }}</span>
-        <md-button @click.native="$refs.snackbar.close()">Close</md-button>
+        <md-button @click.native="$refs.snackbar.close()">{{ $t("message.closeBtn") }}</md-button>
     </md-snackbar>
 </div>
 <script defer src="app.js"></script>
