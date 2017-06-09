@@ -136,9 +136,13 @@ func (s *Server) serveData(w http.ResponseWriter, r *http.Request) {
 		// upload page
 		if err := s.Ftp.Upload(genDir); err != nil {
 			renderError(w, err)
+			return
 		}
 
-		// TODO git commit page
+		// git commit & push
+		if err := s.Repo.Push(); err != nil {
+			renderError(w, err)
+		}
 
 	default:
 		renderNotAllowed(w, r.Method)

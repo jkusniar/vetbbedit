@@ -71,3 +71,9 @@ type GeneratorService interface {
 type UploaderService interface {
 	Upload(fromDir string) error
 }
+
+// RepositoryService manages page sources in VCS
+type RepositoryService interface {
+	Update() error
+	Push() error
+}

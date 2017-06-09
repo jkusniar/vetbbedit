@@ -35,3 +35,4 @@ cp vetbbedit.rc /etc/rc.d/vetbbedit
 chmod +x /etc/rc.d/vetbbedit
 
 echo "IMPORTANT: fix command line arguments in /etc/rc.d/vetbbedit and run vetbbedit daemon"
+echo "IMPORTANT: SSH KEYS and GIT SETUP"

@@ -86,6 +86,16 @@ func (*uploaderMock) Upload(fromDir string) error {
 	return nil
 }
 
+type repoMock struct{}
+
+func (*repoMock) Update() error {
+	return nil
+}
+
+func (*repoMock) Push() error {
+	return nil
+}
+
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard) //calm down logger in tests
 	os.Exit(m.Run())
@@ -128,6 +138,7 @@ func TestAllHttpHandlers(t *testing.T) {
 		OpeningHours: &hoursMock{},
 		PageGen:      &generatorMock{},
 		Ftp:          &uploaderMock{},
+		Repo:         &repoMock{},
 	}).createServeMux(true)
 
 	for _, tt := range tests {

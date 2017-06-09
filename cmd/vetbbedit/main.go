@@ -34,6 +34,7 @@ import (
 
 	"github.com/jkusniar/vetbbedit/http"
 	"github.com/jkusniar/vetbbedit/page/generator"
+	"github.com/jkusniar/vetbbedit/page/repo"
 	"github.com/jkusniar/vetbbedit/page/store"
 	"github.com/jkusniar/vetbbedit/page/uploader"
 )
@@ -85,7 +86,10 @@ func main() {
 
 	checkPortNum(*port, "port")
 	checkPortNum(*sshPort, "sshPort")
-	checkFileExists(*localDir) // TODO: `git clone` if not existing. `git pull` if existing
+
+	// git clone/pull page repo
+	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch)
+	pr.Update()
 
 	// server
 	srv := &http.Server{
@@ -94,6 +98,7 @@ func main() {
 		OpeningHours: store.NewOpeningHoursService(*localDir),
 		PageGen:      generator.New(*localDir, store.NewConfigService(*localDir)),
 		Ftp:          uploader.New(*sshHost, *sshPort, *sshUser, *sshPass, *sshDir),
+		Repo:         pr,
 	}
 
 	// shutdown signal handler
@@ -160,13 +165,6 @@ func checkPortNum(port uint, name string) {
 	if port == 0 || port > 65535 {
 		fmt.Fprintf(os.Stderr, "%s value %d is out of range [1-65535]\n",
 			name, port)
-		os.Exit(2)
-	}
-}
-
-func checkFileExists(name string) {
-	if _, err := os.Stat(name); err != nil {
-		fmt.Fprintf(os.Stderr, "Required file %v not found: %v\n", name, err)
 		os.Exit(2)
 	}
 }
