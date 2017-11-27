@@ -6,6 +6,7 @@
 package gitmap
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -58,13 +59,14 @@ func Map(repository, revision string) (*GitRepo, error) {
 
 	topLevelPath := strings.TrimSpace(string(out))
 
-	gitLogArgs := fmt.Sprintf(
-		"-C %s log --name-only --no-merges --format=format:%%x1e%%H%%x1f%%h%%x1f%%s%%x1f%%aN%%x1f%%aE%%x1f%%ai %s",
-		repository,
+	gitLogArgs := strings.Fields(fmt.Sprintf(
+		`--name-only --no-merges --format=format:%%x1e%%H%%x1f%%h%%x1f%%s%%x1f%%aN%%x1f%%aE%%x1f%%ai %s`,
 		revision,
-	)
+	))
 
-	out, err = git(strings.Fields(gitLogArgs)...)
+	gitLogArgs = append([]string{"-C", repository, "log"}, gitLogArgs...)
+
+	out, err = git(gitLogArgs...)
 
 	if err != nil {
 		return nil, err
@@ -97,7 +99,7 @@ func Map(repository, revision string) (*GitRepo, error) {
 }
 
 func git(args ...string) ([]byte, error) {
-	out, err := exec.Command(gitExec, args...).Output()
+	out, err := exec.Command(gitExec, args...).CombinedOutput()
 
 	if err != nil {
 		if ee, ok := err.(*exec.Error); ok {
@@ -106,7 +108,7 @@ func git(args ...string) ([]byte, error) {
 			}
 		}
 
-		return nil, err
+		return nil, errors.New(string(bytes.TrimSpace(out)))
 	}
 
 	return out, nil

@@ -22,13 +22,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gohugoio/hugo/create"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/hugolib"
+	"github.com/gohugoio/hugo/parser"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
-	"github.com/spf13/hugo/create"
-	"github.com/spf13/hugo/helpers"
-	"github.com/spf13/hugo/hugofs"
-	"github.com/spf13/hugo/hugolib"
-	"github.com/spf13/hugo/parser"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 )
@@ -42,7 +42,6 @@ var (
 func init() {
 	newSiteCmd.Flags().StringVarP(&configFormat, "format", "f", "toml", "config & frontmatter format")
 	newSiteCmd.Flags().Bool("force", false, "init inside non-empty directory")
-	newCmd.Flags().StringVarP(&configFormat, "format", "f", "toml", "frontmatter format")
 	newCmd.Flags().StringVarP(&contentType, "kind", "k", "", "content type to create")
 	newCmd.PersistentFlags().StringVarP(&source, "source", "s", "", "filesystem path to read files relative from")
 	newCmd.PersistentFlags().SetAnnotation("source", cobra.BashCompSubdirsInDir, []string{})
@@ -98,10 +97,6 @@ func NewContent(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if cmd.Flags().Changed("format") {
-		c.Set("metaDataFormat", configFormat)
-	}
-
 	if cmd.Flags().Changed("editor") {
 		c.Set("newContentEditor", contentEditor)
 	}
@@ -120,20 +115,48 @@ func NewContent(cmd *cobra.Command, args []string) error {
 		kind = contentType
 	}
 
-	s, err := hugolib.NewSite(*cfg)
-
+	ps, err := helpers.NewPathSpec(cfg.Fs, cfg.Cfg)
 	if err != nil {
-		return newSystemError(err)
+		return err
 	}
 
-	return create.NewContent(s, kind, createPath)
+	// If a site isn't in use in the archetype template, we can skip the build.
+	siteFactory := func(filename string, siteUsed bool) (*hugolib.Site, error) {
+		if !siteUsed {
+			return hugolib.NewSite(*cfg)
+		}
+		var s *hugolib.Site
+		if err := c.initSites(); err != nil {
+			return nil, err
+		}
+
+		if err := Hugo.Build(hugolib.BuildCfg{SkipRender: true, PrintStats: false}); err != nil {
+			return nil, err
+		}
+
+		s = Hugo.Sites[0]
+
+		if len(Hugo.Sites) > 1 {
+			// Find the best match.
+			for _, ss := range Hugo.Sites {
+				if strings.Contains(createPath, "."+ss.Language.Lang) {
+					s = ss
+					break
+				}
+			}
+		}
+		return s, nil
+	}
+
+	return create.NewContent(ps, siteFactory, kind, createPath)
 }
 
 func doNewSite(fs *hugofs.Fs, basepath string, force bool) error {
+	archeTypePath := filepath.Join(basepath, "archetypes")
 	dirs := []string{
 		filepath.Join(basepath, "layouts"),
 		filepath.Join(basepath, "content"),
-		filepath.Join(basepath, "archetypes"),
+		archeTypePath,
 		filepath.Join(basepath, "static"),
 		filepath.Join(basepath, "data"),
 		filepath.Join(basepath, "themes"),
@@ -167,6 +190,10 @@ func doNewSite(fs *hugofs.Fs, basepath string, force bool) error {
 	}
 
 	createConfig(fs, basepath, configFormat)
+
+	// Create a defaul archetype file.
+	helpers.SafeWriteToDisk(filepath.Join(archeTypePath, "default.md"),
+		strings.NewReader(create.ArchetypeTemplateTemplate), fs.Source)
 
 	jww.FEEDBACK.Printf("Congratulations! Your new Hugo site is created in %s.\n\n", basepath)
 	jww.FEEDBACK.Println(nextStepsText())
@@ -311,16 +338,16 @@ func touchFile(fs afero.Fs, x ...string) {
 func createThemeMD(fs *hugofs.Fs, inpath string) (err error) {
 
 	by := []byte(`# theme.toml template for a Hugo theme
-# See https://github.com/spf13/hugoThemes#themetoml for an example
+# See https://github.com/gohugoio/hugoThemes#themetoml for an example
 
 name = "` + strings.Title(helpers.MakeTitle(filepath.Base(inpath))) + `"
 license = "MIT"
 licenselink = "https://github.com/yourname/yourtheme/blob/master/LICENSE.md"
 description = ""
-homepage = "http://siteforthistheme.com/"
+homepage = "http://example.com/"
 tags = []
 features = []
-min_version = "0.21"
+min_version = "0.31.1"
 
 [author]
   name = ""

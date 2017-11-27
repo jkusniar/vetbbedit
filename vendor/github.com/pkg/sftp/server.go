@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	sftpServerWorkerCount = 8
+	SftpServerWorkerCount = 8
 )
 
 // Server is an SSH File Transfer Protocol (sftp) server.
@@ -26,10 +26,10 @@ const (
 // This implementation currently supports most of sftp server protocol version 3,
 // as specified at http://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
 type Server struct {
-	serverConn
+	*serverConn
 	debugStream   io.Writer
 	readOnly      bool
-	pktMgr        packetManager
+	pktMgr        *packetManager
 	openFiles     map[string]*os.File
 	openFilesLock sync.RWMutex
 	handleCount   int
@@ -75,7 +75,7 @@ type serverRespondablePacket interface {
 //
 // A subsequent call to Serve() is required to begin serving files over SFTP.
 func NewServer(rwc io.ReadWriteCloser, options ...ServerOption) (*Server, error) {
-	svrConn := serverConn{
+	svrConn := &serverConn{
 		conn: conn{
 			Reader:      rwc,
 			WriteCloser: rwc,
@@ -84,7 +84,7 @@ func NewServer(rwc io.ReadWriteCloser, options ...ServerOption) (*Server, error)
 	s := &Server{
 		serverConn:  svrConn,
 		debugStream: ioutil.Discard,
-		pktMgr:      newPktMgr(&svrConn),
+		pktMgr:      newPktMgr(svrConn),
 		openFiles:   make(map[string]*os.File),
 		maxTxPacket: 1 << 15,
 	}
@@ -230,8 +230,7 @@ func handlePacket(s *Server, p interface{}) error {
 		if err != nil {
 			return s.sendError(p, err)
 		}
-		f = filepath.Clean(f)
-		f = filepath.ToSlash(f) // make path more Unix like on windows servers
+		f = cleanPath(f)
 		return s.sendPacket(sshFxpNamePacket{
 			ID: p.ID,
 			NameAttrs: []sshFxpNameAttr{{
@@ -282,15 +281,16 @@ func handlePacket(s *Server, p interface{}) error {
 // is stopped.
 func (svr *Server) Serve() error {
 	var wg sync.WaitGroup
-	wg.Add(1)
-	workerFunc := func(ch requestChan) {
+	runWorker := func(ch requestChan) {
 		wg.Add(1)
-		defer wg.Done()
-		if err := svr.sftpServerWorker(ch); err != nil {
-			svr.conn.Close() // shuts down recvPacket
-		}
+		go func() {
+			defer wg.Done()
+			if err := svr.sftpServerWorker(ch); err != nil {
+				svr.conn.Close() // shuts down recvPacket
+			}
+		}()
 	}
-	pktChan := svr.pktMgr.workerChan(workerFunc)
+	pktChan := svr.pktMgr.workerChan(runWorker)
 
 	var err error
 	var pkt requestPacket
@@ -311,7 +311,6 @@ func (svr *Server) Serve() error {
 
 		pktChan <- pkt
 	}
-	wg.Done()
 
 	close(pktChan) // shuts down sftpServerWorkers
 	wg.Wait()      // wait for all workers to exit
@@ -555,6 +554,8 @@ func statusFromError(p ider, err error) sshFxpStatusPacket {
 		ret.StatusError.msg = err.Error()
 		if err == io.EOF {
 			ret.StatusError.Code = ssh_FX_EOF
+		} else if err == os.ErrNotExist {
+			ret.StatusError.Code = ssh_FX_NO_SUCH_FILE
 		} else if errno, ok := err.(syscall.Errno); ok {
 			ret.StatusError.Code = translateErrno(errno)
 		} else if pathError, ok := err.(*os.PathError); ok {
@@ -572,4 +573,93 @@ func clamp(v, max uint32) uint32 {
 		return max
 	}
 	return v
+}
+
+func runLsTypeWord(dirent os.FileInfo) string {
+	// find first character, the type char
+	// b     Block special file.
+	// c     Character special file.
+	// d     Directory.
+	// l     Symbolic link.
+	// s     Socket link.
+	// p     FIFO.
+	// -     Regular file.
+	tc := '-'
+	mode := dirent.Mode()
+	if (mode & os.ModeDir) != 0 {
+		tc = 'd'
+	} else if (mode & os.ModeDevice) != 0 {
+		tc = 'b'
+		if (mode & os.ModeCharDevice) != 0 {
+			tc = 'c'
+		}
+	} else if (mode & os.ModeSymlink) != 0 {
+		tc = 'l'
+	} else if (mode & os.ModeSocket) != 0 {
+		tc = 's'
+	} else if (mode & os.ModeNamedPipe) != 0 {
+		tc = 'p'
+	}
+
+	// owner
+	orc := '-'
+	if (mode & 0400) != 0 {
+		orc = 'r'
+	}
+	owc := '-'
+	if (mode & 0200) != 0 {
+		owc = 'w'
+	}
+	oxc := '-'
+	ox := (mode & 0100) != 0
+	setuid := (mode & os.ModeSetuid) != 0
+	if ox && setuid {
+		oxc = 's'
+	} else if setuid {
+		oxc = 'S'
+	} else if ox {
+		oxc = 'x'
+	}
+
+	// group
+	grc := '-'
+	if (mode & 040) != 0 {
+		grc = 'r'
+	}
+	gwc := '-'
+	if (mode & 020) != 0 {
+		gwc = 'w'
+	}
+	gxc := '-'
+	gx := (mode & 010) != 0
+	setgid := (mode & os.ModeSetgid) != 0
+	if gx && setgid {
+		gxc = 's'
+	} else if setgid {
+		gxc = 'S'
+	} else if gx {
+		gxc = 'x'
+	}
+
+	// all / others
+	arc := '-'
+	if (mode & 04) != 0 {
+		arc = 'r'
+	}
+	awc := '-'
+	if (mode & 02) != 0 {
+		awc = 'w'
+	}
+	axc := '-'
+	ax := (mode & 01) != 0
+	sticky := (mode & os.ModeSticky) != 0
+	if ax && sticky {
+		axc = 't'
+	} else if sticky {
+		axc = 'T'
+	} else if ax {
+		axc = 'x'
+	}
+
+	return fmt.Sprintf("%c%c%c%c%c%c%c%c%c%c", tc, orc, owc, oxc, grc, gwc, gxc, arc, awc, axc)
 }

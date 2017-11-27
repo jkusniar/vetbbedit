@@ -7,7 +7,7 @@ Web based page editor for [veterinabb.sk](http://veterinabb.sk) using [hugo](htt
 
 ## Install
 
-Requires go 1.8+
+Tested on go 1.9+
 
 ```sh
 go install github.com/jkusniar/vetbbedit/cmd/vetbbedit

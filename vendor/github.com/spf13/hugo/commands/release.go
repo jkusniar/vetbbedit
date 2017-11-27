@@ -16,8 +16,10 @@
 package commands
 
 import (
+	"errors"
+
+	"github.com/gohugoio/hugo/releaser"
 	"github.com/spf13/cobra"
-	"github.com/spf13/hugo/releaser"
 )
 
 func init() {
@@ -27,12 +29,10 @@ func init() {
 type releaseCommandeer struct {
 	cmd *cobra.Command
 
-	// Will be zero for main releases.
-	patchLevel int
+	version string
 
 	skipPublish bool
-
-	step int
+	try         bool
 }
 
 func createReleaser() *releaseCommandeer {
@@ -50,13 +50,16 @@ func createReleaser() *releaseCommandeer {
 		return r.release()
 	}
 
-	r.cmd.PersistentFlags().IntVarP(&r.patchLevel, "patch", "p", 0, "patch level, defaults to 0 for main releases")
-	r.cmd.PersistentFlags().IntVarP(&r.step, "step", "s", -1, "release step, defaults to -1 for all steps.")
+	r.cmd.PersistentFlags().StringVarP(&r.version, "rel", "r", "", "new release version, i.e. 0.25.1")
 	r.cmd.PersistentFlags().BoolVarP(&r.skipPublish, "skip-publish", "", false, "skip all publishing pipes of the release")
+	r.cmd.PersistentFlags().BoolVarP(&r.try, "try", "", false, "simulate a release, i.e. no changes")
 
 	return r
 }
 
 func (r *releaseCommandeer) release() error {
-	return releaser.New(r.patchLevel, r.step, r.skipPublish).Run()
+	if r.version == "" {
+		return errors.New("must set the --rel flag to the relevant version number")
+	}
+	return releaser.New(r.version, r.skipPublish, r.try).Run()
 }
