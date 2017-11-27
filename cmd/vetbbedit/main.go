@@ -44,13 +44,15 @@ var (
 	devMode      = flag.Bool("devMode", false,
 		"development mode. Serve static files from http/client dir")
 	port     = flag.Uint("port", uint(8080), "http server port [env VETBB_PORT]")
-	localDir *string
+	localDir = flag.String("localDir", path.Join(os.TempDir(), "web"),
+		"web page local directiory [env VETBB_LOCAL_DIR]")
 
 	// GIT repo parameters
 	repoURL = flag.String("repoURL", "git@github.com:jkusniar/veterinabb.sk.git",
 		"web page remote repository [env VETBB_REPO_URL]")
 	repoBranch = flag.String("repoBranch", "master",
 		"repository branch [env VETBB_REPO_BRANCH]")
+	repoToken = flag.String("repoToken", "xxSECRETxx", "repository access token [env VETBB_REPO_TOKEN]")
 
 	// SSH upload parameters
 	sshHost = flag.String("sshHost", "localhost",
@@ -62,13 +64,11 @@ var (
 	sshDir = flag.String("sshDir", "public_html", "remote server SSH directory [env VETBB_SSH_DIR]")
 )
 
-const version = "v1.0.0"
+const version = "v1.1.0"
 
 func init() {
 	u, _ := user.Current()
 	sshUser = flag.String("sshUser", u.Username, "remote server SSH username [env VETBB_SSH_USER]")
-	localDir = flag.String("localDir", path.Join(u.HomeDir, "web"),
-		"web page local directiory [env VETBB_LOCAL_DIR]")
 }
 
 func main() {
@@ -88,7 +88,7 @@ func main() {
 	checkPortNum(*sshPort, "sshPort")
 
 	// git clone/pull page repo
-	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch)
+	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch, *repoToken)
 	pr.Update()
 
 	// server
@@ -132,6 +132,7 @@ func envVars() {
 	stringVar(localDir, "VETBB_LOCAL_DIR")
 	stringVar(repoURL, "VETBB_REPO_URL")
 	stringVar(repoBranch, "VETBB_REPO_BRANCH")
+	stringVar(repoToken, "VETBB_REPO_TOKEN")
 	stringVar(sshHost, "VETBB_SSH_HOST")
 	uintVar(sshPort, "VETBB_SSH_PORT")
 	stringVar(sshUser, "VETBB_SSH_USER")

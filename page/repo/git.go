@@ -38,12 +38,16 @@ var (
 )
 
 type PageGitRepo struct {
-	repoDir, repoURL, repoBranch string
+	repoDir, repoURL, repoBranch, repoToken string
 }
 
 // NewPageGitRepo returns new initialized instance of PageGitRepo
-func NewPageGitRepo(repoDir, repoURL, repoBranch string) *PageGitRepo {
-	return &PageGitRepo{repoDir: repoDir, repoURL: repoURL, repoBranch: repoBranch}
+func NewPageGitRepo(repoDir, repoURL, repoBranch, repoToken string) *PageGitRepo {
+	return &PageGitRepo{
+		repoDir:    repoDir,
+		repoURL:    repoURL,
+		repoBranch: repoBranch,
+		repoToken:  repoToken}
 }
 
 // Update fetches latest changes from repoURL.
