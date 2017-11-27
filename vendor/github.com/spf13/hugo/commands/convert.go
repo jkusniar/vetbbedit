@@ -19,10 +19,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gohugoio/hugo/hugolib"
+	"github.com/gohugoio/hugo/parser"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
-	"github.com/spf13/hugo/hugolib"
-	"github.com/spf13/hugo/parser"
 )
 
 var outputDir string
@@ -136,7 +136,7 @@ func convertContents(mark rune) error {
 		page.SetDir(filepath.Join(contentDir, file.Dir()))
 		page.SetSourceContent(psr.Content())
 		if err = page.SetSourceMetaData(metadata, mark); err != nil {
-			site.Log.ERROR.Printf("Failed to set source metadata for file %q: %s. For more info see For more info see https://github.com/spf13/hugo/issues/2458", page.FullFilePath(), err)
+			site.Log.ERROR.Printf("Failed to set source metadata for file %q: %s. For more info see For more info see https://github.com/gohugoio/hugo/issues/2458", page.FullFilePath(), err)
 			continue
 		}
 

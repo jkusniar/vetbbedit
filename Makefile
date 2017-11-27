@@ -10,20 +10,18 @@ build-deps:
 
 # install development dependencies, OPTIONAL
 dev-deps:
-	go get -u -v github.com/kardianos/govendor
+	go get -u -v github.com/golang/dep/cmd/dep
 	go get -u -v github.com/jteeuwen/go-bindata/...
 
 # call golint on all packages except vendor folder
 lint:
-	for p in $$(go list ./... | grep -v /vendor/); do \
+	for p in $$(go list ./...); do \
 		golint $$p ;\
 	done
 
 # call go vet on all packages except vendor folder
 vet:
-	for p in $$(go list ./... | grep -v /vendor/); do \
-		go vet $$p ;\
-	done
+	go vet ./...
 
 # build executables on default arch
 build:

@@ -525,7 +525,7 @@ func IsKeyword(data []byte) bool {
 
 // ~~ Comments
 func isComment(data []byte) bool {
-	return charMatches(data[0], '#') && charMatches(data[1], ' ')
+	return len(data) > 1 && charMatches(data[0], '#') && charMatches(data[1], ' ')
 }
 
 func (p *parser) generateComment(out *bytes.Buffer, data []byte) {
@@ -556,7 +556,7 @@ func (p *parser) generateParagraph(out *bytes.Buffer, data []byte) {
 func (p *parser) generateList(output *bytes.Buffer, data []byte, listType string) {
 	generateList := func() bool {
 		output.WriteByte('\n')
-		output.Write(data)
+		p.inline(output, bytes.Trim(data, " "))
 		return true
 	}
 	switch listType {
@@ -622,7 +622,8 @@ func isTerminatingChar(char byte) bool {
 func findLastCharInInline(data []byte, char byte) int {
 	timesFound := 0
 	last := 0
-	for i := 0; i < len(data); i++ {
+	// Start from character after the inline indicator
+	for i := 1; i < len(data); i++ {
 		if timesFound == 1 {
 			break
 		}

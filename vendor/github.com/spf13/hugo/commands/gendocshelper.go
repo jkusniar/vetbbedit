@@ -19,8 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/gohugoio/hugo/docshelper"
 	"github.com/spf13/cobra"
-	"github.com/spf13/hugo/docshelper"
 )
 
 type genDocsHelper struct {

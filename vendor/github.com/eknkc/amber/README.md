@@ -1,5 +1,9 @@
 # amber [![GoDoc](https://godoc.org/github.com/golang/gddo?status.svg)](http://godoc.org/github.com/eknkc/amber) [![Build Status](https://travis-ci.org/eknkc/amber.svg?branch=master)](https://travis-ci.org/eknkc/amber)
 
+## Notice
+> While Amber is perfectly fine and stable to use, I've been working on a direct Pug.js port for Go. It is somewhat hacky at the moment but take a look at [Pug.go](https://github.com/eknkc/pug) if you are looking for a [Pug.js](https://github.com/pugjs/pug) compatible Go template engine.
+
+### Usage
 ```go
 import "github.com/eknkc/amber"
 ```
@@ -418,7 +422,7 @@ type Options struct {
 	// If disabled, produced HTML is compact. This might be more suitable in production environments.
 	// Defaukt: true
 	PrettyPrint bool
-	// Setting if line number emiting is enabled
+	// Setting if line number emitting is enabled
 	// In this form, Amber emits line number comments in the output template. It is usable in debugging environments.
 	// Default: false
 	LineNumbers bool
