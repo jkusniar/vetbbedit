@@ -27,7 +27,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"os/user"
 	"path"
 	"strconv"
 	"syscall"
@@ -43,33 +42,31 @@ var (
 	printVersion = flag.Bool("v", false, "print version and exit")
 	devMode      = flag.Bool("devMode", false,
 		"development mode. Serve static files from http/client dir")
+
+	// Embedded HTTP server settings
 	port     = flag.Uint("port", uint(8080), "http server port [env VETBB_PORT]")
-	localDir *string
+	localDir = flag.String("localDir", path.Join(os.TempDir(), "vetbbedit"),
+		"web page local directiory [env VETBB_LOCAL_DIR]")
 
 	// GIT repo parameters
-	repoURL = flag.String("repoURL", "git@github.com:jkusniar/veterinabb.sk.git",
-		"web page remote repository [env VETBB_REPO_URL]")
+	repoURL = flag.String("repoURL", "https://gitlab.com/api/v4",
+		"remote repo REST API url [env VETBB_REPO_URL]")
 	repoBranch = flag.String("repoBranch", "master",
-		"repository branch [env VETBB_REPO_BRANCH]")
+		"remote repo branch [env VETBB_REPO_BRANCH]")
+	repoToken     = flag.String("repoToken", "xxSECRETxx", "remote repo access token [env VETBB_REPO_TOKEN]")
+	repoProjectId = flag.Uint("repoProjectId", uint(979247), "remote repo project id [env VETBB_REPO_PRJID]")
 
 	// SSH upload parameters
 	sshHost = flag.String("sshHost", "localhost",
 		"remote server SSH hostname [env VETBB_SSH_HOST]")
 	sshPort = flag.Uint("sshPort", uint(22), "remote server SSH port [env VETBB_SSH_PORT]")
-	sshUser *string
+	sshUser = flag.String("sshUser", "user", "remote server SSH username [env VETBB_SSH_USER]")
 	sshPass = flag.String("sshPass", os.Getenv("SOCKSIE_SSH_PASSWORD"),
 		"remote server SSH password [env VETBB_SSH_PASS]")
 	sshDir = flag.String("sshDir", "public_html", "remote server SSH directory [env VETBB_SSH_DIR]")
 )
 
-const version = "v1.0.0"
-
-func init() {
-	u, _ := user.Current()
-	sshUser = flag.String("sshUser", u.Username, "remote server SSH username [env VETBB_SSH_USER]")
-	localDir = flag.String("localDir", path.Join(u.HomeDir, "web"),
-		"web page local directiory [env VETBB_LOCAL_DIR]")
-}
+const version = "v1.1.0"
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -88,8 +85,8 @@ func main() {
 	checkPortNum(*sshPort, "sshPort")
 
 	// git clone/pull page repo
-	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch)
-	pr.Update()
+	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch, *repoToken, *repoProjectId)
+	pr.Pull()
 
 	// server
 	srv := &http.Server{
@@ -132,6 +129,8 @@ func envVars() {
 	stringVar(localDir, "VETBB_LOCAL_DIR")
 	stringVar(repoURL, "VETBB_REPO_URL")
 	stringVar(repoBranch, "VETBB_REPO_BRANCH")
+	stringVar(repoToken, "VETBB_REPO_TOKEN")
+	uintVar(repoProjectId, "VETBB_REPO_PRJID")
 	stringVar(sshHost, "VETBB_SSH_HOST")
 	uintVar(sshPort, "VETBB_SSH_PORT")
 	stringVar(sshUser, "VETBB_SSH_USER")

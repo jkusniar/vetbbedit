@@ -88,7 +88,7 @@ func (*uploaderMock) Upload(fromDir string) error {
 
 type repoMock struct{}
 
-func (*repoMock) Update() error {
+func (*repoMock) Pull() error {
 	return nil
 }
 

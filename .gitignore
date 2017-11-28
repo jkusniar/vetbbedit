@@ -1,2 +1,4 @@
 .idea
 /vetbbedit
+*.sublime-project
+*.sublime-workspace

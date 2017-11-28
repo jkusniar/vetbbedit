@@ -22,121 +22,332 @@
 package repo
 
 import (
+	"archive/tar"
 	"bytes"
-	"log"
+	"compress/gzip"
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"net/http/httputil"
 	"os"
-	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
-var (
-	vcs = "git"
-)
+// TODO: clean this mess up to reuse code from page/store package
 
+// PageGitRepo is remote GIT repo
 type PageGitRepo struct {
-	repoDir, repoURL, repoBranch string
+	localDir, repoURL, repoBranch, repoToken string
+	projectID                                uint
+	tempArchiveFile                          string
 }
 
 // NewPageGitRepo returns new initialized instance of PageGitRepo
-func NewPageGitRepo(repoDir, repoURL, repoBranch string) *PageGitRepo {
-	return &PageGitRepo{repoDir: repoDir, repoURL: repoURL, repoBranch: repoBranch}
+func NewPageGitRepo(localDir, repoURL, repoBranch, repoToken string, projectID uint) *PageGitRepo {
+	return &PageGitRepo{
+		localDir:        localDir,
+		repoURL:         repoURL,
+		repoBranch:      repoBranch,
+		projectID:       projectID,
+		repoToken:       repoToken,
+		tempArchiveFile: path.Join(os.TempDir(), "vetbbedit.tar.gz")}
 }
 
-// Update fetches latest changes from repoURL.
-// If repo doesn't exist in repoDir, function clones it from repoURL using
-// repoBranch.
-func (p *PageGitRepo) Update() error {
-	exists := true
-	if _, err := os.Stat(p.repoDir); os.IsNotExist(err) {
-		exists = false
-	}
+// Pull fetches latest project version from repository using REST API and extracts it to localDir
+func (p *PageGitRepo) Pull() error {
 
-	if !exists {
-		log.Printf("Page not existing yet, cloning from %s to %s\n", p.repoURL, p.repoDir)
-		if out, err := runVcs(path.Dir(p.repoDir), []string{"clone", p.repoURL, p.repoDir}); err != nil {
-			log.Print(out)
-			return err
-		}
-	}
-
-	if out, err := runVcs(p.repoDir, []string{"checkout", p.repoBranch}); err != nil {
-		log.Print(out)
+	// recreate work directory
+	if err := recreateDir(p.localDir); err != nil {
 		return err
-
 	}
 
-	if exists {
-		out, err := runVcs(p.repoDir, []string{"pull", "--ff-only"})
-		if err != nil {
-			log.Print(out)
-			return err
-		}
+	// get latest commit SHA
+	sha, err := p.getLatestCommit()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	// get archive from server
+	if err := p.getRepoArchive(sha); err != nil {
+		return err
+	}
+
+	// extract archive to work directory,
+	// filter out directory "web-xxxxx-xxxxx" from all paths while extracting
+	dirFilter := strings.Join([]string{"web", sha, sha}, "-")
+	if err := untar(p.localDir, p.tempArchiveFile, dirFilter); err != nil {
+		return err
+	}
+
+	// remove archive
+	return errors.Wrap(os.RemoveAll(p.tempArchiveFile), "error removing archive")
 
 }
 
-// Push commits and pushes changes to repoURL.
+// Push pushes changes to repo using REST API
 func (p *PageGitRepo) Push() error {
-	if out, err := runVcs(p.repoDir, []string{"diff"}); err != nil {
-		log.Print(out)
+
+	type action struct {
+		Action   string `json:"action"`
+		FilePath string `json:"file_path"`
+		Content  string `json:"content"`
+	}
+
+	type payload struct {
+		Branch        string   `json:"branch"`
+		CommitMessage string   `json:"commit_message"`
+		Actions       []action `json:"actions"`
+		AuthorEmail   string   `json:"author_email"`
+		AuthorName    string   `json:"author_name"`
+	}
+
+	// load data files and create commit payload
+	configData, err := ioutil.ReadFile(path.Join(p.localDir, "config.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading config.json")
+	}
+
+	newsData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "news.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading news.json")
+	}
+
+	servicesData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "services.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading services.json")
+	}
+
+	hoursData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "hours.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading hours.json")
+	}
+
+	pl := payload{
+		Branch:        p.repoBranch,
+		CommitMessage: strings.Join([]string{"vetbbedit", time.Now().Format(time.RFC3339)}, " "),
+		AuthorEmail:   "vetbbedit@veterinabb.sk",
+		AuthorName:    "vetbbedit",
+		Actions: []action{
+			action{Action: "update", FilePath: "config.json", Content: string(configData)},
+			action{Action: "update", FilePath: "data/news.json", Content: string(newsData)},
+			action{Action: "update", FilePath: "data/services.json", Content: string(servicesData)},
+			action{Action: "update", FilePath: "data/hours.json", Content: string(hoursData)},
+		},
+	}
+
+	// encode json to bytes
+	var b bytes.Buffer
+	if err := json.NewEncoder(&b).Encode(&pl); err != nil {
+		return errors.Wrap(err, "error encoding json")
+	}
+
+	// send commit to server
+	URL := fmt.Sprintf("%s/projects/%d/repository/commits", p.repoURL, p.projectID)
+	if err := authenticatedPost(URL, p.repoToken, &b); err != nil {
+		return errors.Wrap(err, "error committing")
+	}
+
+	// TODO check if commit necessary to prevent empty commits
+
+	return nil
+}
+
+func (p *PageGitRepo) getLatestCommit() (string, error) {
+	URL := fmt.Sprintf("%s/projects/%d/repository/branches/%s", p.repoURL, p.projectID, p.repoBranch)
+	resp, err := authenticatedGet(URL, p.repoToken)
+	if err != nil {
+		return "", err
+	}
+
+	type commit struct {
+		Id string `json:"id"`
+	}
+
+	type branch struct {
+		Name   string `json:"name"`
+		Commit commit `json:"commit"`
+	}
+
+	var b branch
+	if err := json.NewDecoder(resp.Body).Decode(&b); err != nil {
+		return "", errors.Wrap(err, "error parsing JSON")
+	}
+	defer resp.Body.Close()
+
+	return b.Commit.Id, nil
+}
+
+func (p *PageGitRepo) getRepoArchive(commitID string) error {
+	URL := fmt.Sprintf("%s/projects/%d/repository/archive?sha=%s", p.repoURL, p.projectID, commitID)
+	resp, err := authenticatedGet(URL, p.repoToken)
+	if err != nil {
 		return err
-	} else if len(out) != 0 {
-		if out, err := runVcs(p.repoDir,
-			[]string{"commit", "-a", "-m", "vetbbedit " + time.Now().Format(time.RFC3339)}); err != nil {
-			log.Print(out)
-			return err
-		}
-		if out, err := runVcs(p.repoDir, []string{"push", "origin", p.repoBranch}); err != nil {
-			log.Print(out)
-			return err
-		}
-	} else {
-		log.Println("No changes detected, skipping commit & push")
+	}
+	defer resp.Body.Close()
+
+	out, err := os.Create(p.tempArchiveFile)
+	if err != nil {
+		return errors.Wrap(err, "error creating archive file")
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return errors.Wrap(err, "error copying data to archive file")
 	}
 
 	return nil
 }
 
-// Stolen from golang.org/x/tools/go/vcs
-func envForDir(dir string) []string {
-	env := os.Environ()
-	return mergeEnvLists([]string{"PWD=" + dir}, env)
-}
+func untar(dst, tarFile, filterDir string) error {
+	r, err := os.Open(tarFile)
+	if err != nil {
+		return errors.Wrap(err, "error opening file for reading")
+	}
+	defer r.Close()
 
-func mergeEnvLists(in, out []string) []string {
-NextVar:
-	for _, inkv := range in {
-		k := strings.SplitAfterN(inkv, "=", 2)[0]
-		for i, outkv := range out {
-			if strings.HasPrefix(outkv, k) {
-				out[i] = inkv
-				continue NextVar
+	gzr, err := gzip.NewReader(r)
+	defer gzr.Close()
+	if err != nil {
+		return errors.Wrap(err, "error opening gzip")
+	}
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+
+		switch {
+
+		// if no more files are found return
+		case err == io.EOF:
+			return nil
+
+		// return any other error
+		case err != nil:
+			return errors.Wrap(err, "error decompressing file")
+
+		// if the header is nil, just skip it (not sure how this happens)
+		case header == nil:
+			continue
+		}
+
+		// the target location where the dir/file should be created
+		//target := filepath.Join(dst, header.Name)
+
+		// custom target path: remove directory "web-<commitSHA>-<commitSHA>" from target path
+		rel, e := filepath.Rel(filterDir, header.Name)
+		if e != nil {
+			return errors.Wrap(err, "error computing new file path")
+		}
+		target := filepath.Join(dst, rel)
+
+		// check the file type
+		switch header.Typeflag {
+
+		// if its a dir and it doesn't exist create it
+		case tar.TypeDir:
+			if err := createDir(target); err != nil {
+				return err
+			}
+
+		// if it's a file create it
+		case tar.TypeReg:
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return errors.Wrap(err, "error creating file")
+			}
+			defer f.Close()
+
+			// copy over contents
+			if _, err := io.Copy(f, tr); err != nil {
+				return errors.Wrap(err, "error writing file contents")
 			}
 		}
-		out = append(out, inkv)
 	}
-	return out
 }
 
-func runVcs(dir string, args []string) (string, error) {
-	_, err := exec.LookPath(vcs)
-	if err != nil {
-		return "", errors.Wrap(err, "git command not present")
+// create dir if not exists
+func createDir(dirName string) error {
+	if _, err := os.Stat(dirName); os.IsNotExist(err) {
+		return errors.Wrap(os.MkdirAll(dirName, 0755), "error creating directory")
+	}
+	return nil
+}
+
+// creates dir if not exists, delete+create if exists
+func recreateDir(dirName string) error {
+	if _, err := os.Stat(dirName); err == nil {
+		if err := os.RemoveAll(dirName); err != nil {
+			return errors.Wrap(err, "error removing directory")
+		}
 	}
 
-	cmd := exec.Command(vcs, args...)
-	cmd.Dir = dir
-	cmd.Env = envForDir(cmd.Dir)
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-	cmd.Stderr = &buf
-	err = cmd.Run()
-	out := buf.String()
-	return out, errors.Wrap(err, "error running git")
+	return createDir(dirName)
+}
+
+// authenticatedGet performs HTTP GET request with supplied auth token
+func authenticatedGet(URL string, token string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", URL, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "error while creating http request")
+	}
+
+	req.Header.Add("PRIVATE-TOKEN", token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error calling HTTP API")
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, errors.Errorf("bad HTTP status %d [%s]",
+			resp.StatusCode, resp.Status)
+	}
+
+	return resp, nil
+}
+
+// authenticatedPost performs HTTP POST request with supplied auth token and content
+func authenticatedPost(URL, token string, content io.Reader) error {
+	req, err := http.NewRequest("POST", URL, content)
+	if err != nil {
+		return errors.Wrap(err, "error while creating http request")
+	}
+
+	req.Header.Add("PRIVATE-TOKEN", token)
+	req.Header.Add("Content-Type", "application/json")
+
+	// DUMP REQUEST
+	// rd, err := httputil.DumpRequestOut(req, true)
+	// if err != nil {
+	// 	return errors.Wrap(err, "error dumping request")
+	// }
+	// fmt.Printf("REQ: %q\n", rd)
+	// DUMP REQUEST
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error calling HTTP API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 201 {
+		// dump response
+		dump, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			return errors.Wrap(err, "error dumping response")
+		}
+		fmt.Printf("RESP: %q\n", dump)
+
+		return errors.Errorf("bad HTTP status %d [%s]",
+			resp.StatusCode, resp.Status)
+	}
+
+	return nil
 }
