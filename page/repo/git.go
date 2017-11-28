@@ -23,23 +23,24 @@ package repo
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
 
-var (
-	vcs = "git"
-)
-
+// PageGitRepo is remote GIT repo
 type PageGitRepo struct {
 	localDir, repoURL, repoBranch, repoToken string
 	projectID                                uint
@@ -57,7 +58,7 @@ func NewPageGitRepo(localDir, repoURL, repoBranch, repoToken string, projectID u
 		tempArchiveFile: path.Join(os.TempDir(), "vetbbedit.tar.gz")}
 }
 
-// Pull fetches latest project version from repository unsing REST API and extracts it to localDir
+// Pull fetches latest project version from repository using REST API and extracts it to localDir
 func (p *PageGitRepo) Pull() error {
 
 	// recreate work directory
@@ -88,27 +89,55 @@ func (p *PageGitRepo) Pull() error {
 
 }
 
-// Push commits and pushes changes to repoURL.
+// Push pushes changes to repo using REST API
 func (p *PageGitRepo) Push() error {
 	// TODO
-	/*
-		if out, err := runVcs(p.localDir, []string{"diff"}); err != nil {
-			log.Print(out)
-			return err
-		} else if len(out) != 0 {
-			if out, err := runVcs(p.localDir,
-				[]string{"commit", "-a", "-m", "vetbbedit " + time.Now().Format(time.RFC3339)}); err != nil {
-				log.Print(out)
-				return err
-			}
-			if out, err := runVcs(p.localDir, []string{"push", "origin", p.repoBranch}); err != nil {
-				log.Print(out)
-				return err
-			}
-		} else {
-			log.Println("No changes detected, skipping commit & push")
-		}
-	*/
+	// data/news.json
+	// data/services.json
+	// data/hours.json
+
+	type action struct {
+		Action   string `json:"action"`
+		FilePath string `json:"file_path"`
+		Content  string `json:"content"`
+	}
+
+	type payload struct {
+		Branch        string   `json:"branch"`
+		CommitMessage string   `json:"commit_message"`
+		Actions       []action `json:"actions"`
+		AuthorEmail   string   `json:"author_email"`
+		AuthorName    string   `json:"author_name"`
+	}
+
+	configData, err := ioutil.ReadFile(path.Join(p.localDir, "config.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading config.json")
+	}
+
+	pl := payload{
+		Branch:        p.repoBranch,
+		CommitMessage: strings.Join([]string{"vetbbedit", time.Now().Format(time.RFC3339)}, " "),
+		AuthorEmail:   "vetbbedit@veterinabb.sk",
+		AuthorName:    "vetbbedit",
+		Actions: []action{
+			action{Action: "update", FilePath: "config.json", Content: string(configData)},
+		},
+	}
+
+	// encode json to bytes
+	var b bytes.Buffer
+	if err := json.NewEncoder(&b).Encode(&pl); err != nil {
+		return errors.Wrap(err, "error encoding json")
+	}
+
+	// send commit to server
+	URL := fmt.Sprintf("%s/projects/%d/repository/commits", p.repoURL, p.projectID)
+	if err := authenticatedPost(URL, p.repoToken, &b); err != nil {
+		return errors.Wrap(err, "error committing")
+	}
+
+	// TODO check if commit necessary to prevent empty commits
 
 	return nil
 }
@@ -120,13 +149,13 @@ func (p *PageGitRepo) getLatestCommit() (string, error) {
 		return "", err
 	}
 
-	type commitDef struct {
+	type commit struct {
 		Id string `json:"id"`
 	}
 
 	type branch struct {
-		Name   string    `json:"name"`
-		Commit commitDef `json:"commit"`
+		Name   string `json:"name"`
+		Commit commit `json:"commit"`
 	}
 
 	var b branch
@@ -160,7 +189,6 @@ func (p *PageGitRepo) getRepoArchive(commitID string) error {
 }
 
 func untar(dst, tarFile, filterDir string) error {
-
 	r, err := os.Open(tarFile)
 	if err != nil {
 		return errors.Wrap(err, "error opening file for reading")
@@ -266,4 +294,43 @@ func authenticatedGet(URL string, token string) (*http.Response, error) {
 	}
 
 	return resp, nil
+}
+
+// authenticatedPost performs HTTP POST request with supplied auth token and content
+func authenticatedPost(URL, token string, content io.Reader) error {
+	req, err := http.NewRequest("POST", URL, content)
+	if err != nil {
+		return errors.Wrap(err, "error while creating http request")
+	}
+
+	req.Header.Add("PRIVATE-TOKEN", token)
+	req.Header.Add("Content-Type", "application/json")
+
+	// DUMP REQUEST
+	// rd, err := httputil.DumpRequestOut(req, true)
+	// if err != nil {
+	// 	return errors.Wrap(err, "error dumping request")
+	// }
+	// fmt.Printf("REQ: %q\n", rd)
+	// DUMP REQUEST
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error calling HTTP API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 201 {
+		// dump response
+		dump, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			return errors.Wrap(err, "error dumping response")
+		}
+		fmt.Printf("RESP: %q\n", dump)
+
+		return errors.Errorf("bad HTTP status %d [%s]",
+			resp.StatusCode, resp.Status)
+	}
+
+	return nil
 }

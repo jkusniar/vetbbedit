@@ -15,10 +15,6 @@ go install github.com/jkusniar/vetbbedit/cmd/vetbbedit
 
 ## Run
 
-* install `git`,
-* configure git (user.name/user.email),
-* setup ssh access to web page repo and run: 
-
 ```sh
 $ vetbbedit [flags]
 ```
