@@ -74,6 +74,6 @@ type UploaderService interface {
 
 // RepositoryService manages page sources in VCS
 type RepositoryService interface {
-	Update() error
+	Pull() error
 	Push() error
 }
