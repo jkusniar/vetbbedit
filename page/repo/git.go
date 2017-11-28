@@ -40,6 +40,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: clean this mess up to reuse code from page/store package
+
 // PageGitRepo is remote GIT repo
 type PageGitRepo struct {
 	localDir, repoURL, repoBranch, repoToken string
@@ -91,10 +93,6 @@ func (p *PageGitRepo) Pull() error {
 
 // Push pushes changes to repo using REST API
 func (p *PageGitRepo) Push() error {
-	// TODO
-	// data/news.json
-	// data/services.json
-	// data/hours.json
 
 	type action struct {
 		Action   string `json:"action"`
@@ -110,9 +108,25 @@ func (p *PageGitRepo) Push() error {
 		AuthorName    string   `json:"author_name"`
 	}
 
+	// load data files and create commit payload
 	configData, err := ioutil.ReadFile(path.Join(p.localDir, "config.json"))
 	if err != nil {
 		errors.Wrap(err, "error reading config.json")
+	}
+
+	newsData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "news.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading news.json")
+	}
+
+	servicesData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "services.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading services.json")
+	}
+
+	hoursData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "hours.json"))
+	if err != nil {
+		errors.Wrap(err, "error reading hours.json")
 	}
 
 	pl := payload{
@@ -122,6 +136,9 @@ func (p *PageGitRepo) Push() error {
 		AuthorName:    "vetbbedit",
 		Actions: []action{
 			action{Action: "update", FilePath: "config.json", Content: string(configData)},
+			action{Action: "update", FilePath: "data/news.json", Content: string(newsData)},
+			action{Action: "update", FilePath: "data/services.json", Content: string(servicesData)},
+			action{Action: "update", FilePath: "data/hours.json", Content: string(hoursData)},
 		},
 	}
 
