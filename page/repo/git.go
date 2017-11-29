@@ -167,7 +167,7 @@ func (p *PageGitRepo) getLatestCommit() (string, error) {
 	}
 
 	type commit struct {
-		Id string `json:"id"`
+		ID string `json:"id"`
 	}
 
 	type branch struct {
@@ -181,7 +181,7 @@ func (p *PageGitRepo) getLatestCommit() (string, error) {
 	}
 	defer resp.Body.Close()
 
-	return b.Commit.Id, nil
+	return b.Commit.ID, nil
 }
 
 func (p *PageGitRepo) getRepoArchive(commitID string) error {

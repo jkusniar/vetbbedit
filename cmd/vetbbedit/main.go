@@ -54,7 +54,7 @@ var (
 	repoBranch = flag.String("repoBranch", "master",
 		"remote repo branch [env VETBB_REPO_BRANCH]")
 	repoToken     = flag.String("repoToken", "xxSECRETxx", "remote repo access token [env VETBB_REPO_TOKEN]")
-	repoProjectId = flag.Uint("repoProjectId", uint(979247), "remote repo project id [env VETBB_REPO_PRJID]")
+	repoProjectID = flag.Uint("repoProjectID", uint(979247), "remote repo project id [env VETBB_REPO_PRJID]")
 
 	// SSH upload parameters
 	sshHost = flag.String("sshHost", "localhost",
@@ -85,7 +85,7 @@ func main() {
 	checkPortNum(*sshPort, "sshPort")
 
 	// git clone/pull page repo
-	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch, *repoToken, *repoProjectId)
+	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch, *repoToken, *repoProjectID)
 	pr.Pull()
 
 	// server
@@ -130,7 +130,7 @@ func envVars() {
 	stringVar(repoURL, "VETBB_REPO_URL")
 	stringVar(repoBranch, "VETBB_REPO_BRANCH")
 	stringVar(repoToken, "VETBB_REPO_TOKEN")
-	uintVar(repoProjectId, "VETBB_REPO_PRJID")
+	uintVar(repoProjectID, "VETBB_REPO_PRJID")
 	stringVar(sshHost, "VETBB_SSH_HOST")
 	uintVar(sshPort, "VETBB_SSH_PORT")
 	stringVar(sshUser, "VETBB_SSH_USER")
