@@ -3,5 +3,9 @@ language: go
 go:
   - 1.9
 
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libwebkitgtk-3.0-dev
+
 install:
-- make build-deps
+  - make build-deps
