@@ -25,6 +25,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -87,7 +88,6 @@ func main() {
 
 	// git clone/pull page repo
 	pr := repo.NewPageGitRepo(*localDir, *repoURL, *repoBranch, *repoToken, *repoProjectID)
-	pr.Pull()
 
 	// server
 	srv := &http.Server{
@@ -120,7 +120,34 @@ func main() {
 	}()
 
 	// start webview
-	webview.Open("vetbbedit", fmt.Sprintf("http://localhost:%d", *port), 1024, 768, true)
+	const startHTML = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>title</title>
+  </head>
+  <body>
+    <h1>LOADING</h1>
+  </body>
+</html>`
+	w := webview.New(webview.Settings{
+		Width:     1024,
+		Height:    768,
+		Title:     "vetbbedit",
+		URL:       `data:text/html,` + url.PathEscape(startHTML),
+		Resizable: true,
+	})
+	defer w.Exit()
+	w.Dispatch(func() {
+		log.Println("started loading data")
+		if err := pr.Pull(); err != nil {
+			log.Fatalf("FATAL: repo download failed: %+v\n", err)
+		}
+		log.Println("data loaded")
+		w.Eval(`window.location.replace("http://localhost:8080");`)
+	})
+	w.Run()
+
 }
 
 func usage() {
