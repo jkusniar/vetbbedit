@@ -120,7 +120,7 @@ func main() {
 	}()
 
 	// start webview
-	webview.Open("vetbbedit", "http://localhost:8080", 800, 600, true)
+	webview.Open("vetbbedit", fmt.Sprintf("http://localhost:%d", *port), 1024, 768, true)
 }
 
 func usage() {

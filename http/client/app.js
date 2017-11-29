@@ -3,7 +3,7 @@
 Vue.use(VueMaterial);
 Vue.use(VueI18n);
 
-var i18n = new VueI18n({
+const i18n = new VueI18n({
     locale: 'sk',  // TODO: set locale from client
     messages: {
         en: {
