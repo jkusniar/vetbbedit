@@ -13,6 +13,8 @@ Tested on go 1.9+
 go install github.com/jkusniar/vetbbedit/cmd/vetbbedit
 ```
 
+On linux, requires libwebkitgtk-3.0-dev installed
+
 ## Run
 
 ```sh

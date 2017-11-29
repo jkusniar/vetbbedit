@@ -36,6 +36,7 @@ import (
 	"github.com/jkusniar/vetbbedit/page/repo"
 	"github.com/jkusniar/vetbbedit/page/store"
 	"github.com/jkusniar/vetbbedit/page/uploader"
+	"github.com/zserge/webview"
 )
 
 var (
@@ -111,10 +112,15 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// showtime
-	if err := srv.Serve(*port, *devMode); err != nil {
-		log.Fatalf("FATAL: starting server failed: %+v\n", err)
-	}
+	// start server
+	go func() {
+		if err := srv.Serve(*port, *devMode); err != nil {
+			log.Fatalf("FATAL: starting server failed: %+v\n", err)
+		}
+	}()
+
+	// start webview
+	webview.Open("vetbbedit", "http://localhost:8080", 800, 600, true)
 }
 
 func usage() {
