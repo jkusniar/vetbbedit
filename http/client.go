@@ -84,7 +84,7 @@ func clientAppJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "client/app.js", size: 5883, mode: os.FileMode(420), modTime: time.Unix(1497017096, 0)}
+	info := bindataFileInfo{name: "client/app.js", size: 5883, mode: os.FileMode(420), modTime: time.Unix(1511978422, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -104,7 +104,7 @@ func clientIndexHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "client/index.html", size: 6047, mode: os.FileMode(420), modTime: time.Unix(1497017034, 0)}
+	info := bindataFileInfo{name: "client/index.html", size: 6047, mode: os.FileMode(420), modTime: time.Unix(1511725059, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

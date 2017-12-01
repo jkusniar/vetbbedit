@@ -260,6 +260,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/zserge/webview"
+  packages = ["."]
+  revision = "9f33a00f8c9e96eeef675d5db5c21ccb1940d497"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh"]
   revision = "b080dc9a8c480b08e698fb1219160d598526310f"
@@ -297,6 +303,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8b1e9549f0dc53bd1cf2e80eefbe3c96a1149262328e1cded0c4ce800de68d0f"
+  inputs-digest = "f98c294f273d1066efb388fdc0114255a300a397a0041b8f0973fccda7de62c7"
   solver-name = "gps-cdcl"
   solver-version = 1

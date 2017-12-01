@@ -4,6 +4,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://raw.githubusercontent.com/jkusniar/lara/master/LICENSE)
 
 Web based page editor for [veterinabb.sk](http://veterinabb.sk) using [hugo](https://gohugo.io/).
+Runs in embedded webview.
 
 ## Install
 
@@ -12,6 +13,9 @@ Tested on go 1.9+
 ```sh
 go install github.com/jkusniar/vetbbedit/cmd/vetbbedit
 ```
+
+* On linux, requires libwebkitgtk-3.0-dev installed. Webkit has problems rendering supplied JavaScript
+* On osx, XCode needs to be installed.
 
 ## Run
 
