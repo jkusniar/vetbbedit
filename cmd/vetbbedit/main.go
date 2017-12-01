@@ -144,7 +144,7 @@ func main() {
 			log.Fatalf("FATAL: repo download failed: %+v\n", err)
 		}
 		log.Println("data loaded")
-		w.Eval(`window.location.replace("http://localhost:8080");`)
+		w.Eval(fmt.Sprintf("window.location.replace(\"http://localhost:%d\");", *port))
 	})
 	w.Run()
 
