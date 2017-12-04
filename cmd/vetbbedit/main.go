@@ -28,6 +28,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"os/user"
 	"path"
 	"strconv"
 	"syscall"
@@ -47,8 +48,7 @@ var (
 
 	// Embedded HTTP server settings
 	port     = flag.Uint("port", uint(8080), "http server port [env VETBB_PORT]")
-	localDir = flag.String("localDir", path.Join(os.TempDir(), "vetbbedit"),
-		"web page local directiory [env VETBB_LOCAL_DIR]")
+	localDir *string
 
 	// GIT repo parameters
 	repoURL = flag.String("repoURL", "https://gitlab.com/api/v4",
@@ -62,13 +62,20 @@ var (
 	sshHost = flag.String("sshHost", "localhost",
 		"remote server SSH hostname [env VETBB_SSH_HOST]")
 	sshPort = flag.Uint("sshPort", uint(22), "remote server SSH port [env VETBB_SSH_PORT]")
-	sshUser = flag.String("sshUser", "user", "remote server SSH username [env VETBB_SSH_USER]")
+	sshUser *string
 	sshPass = flag.String("sshPass", os.Getenv("SOCKSIE_SSH_PASSWORD"),
 		"remote server SSH password [env VETBB_SSH_PASS]")
 	sshDir = flag.String("sshDir", "public_html", "remote server SSH directory [env VETBB_SSH_DIR]")
 )
 
 const version = "v1.1.0"
+
+func init() {
+	u, _ := user.Current()
+	sshUser = flag.String("sshUser", u.Username, "remote server SSH username [env VETBB_SSH_USER]")
+	localDir = flag.String("localDir", path.Join(u.HomeDir, ".vetbbedit"),
+		"web page local directiory [env VETBB_LOCAL_DIR]")
+}
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -91,10 +98,10 @@ func main() {
 
 	// server
 	srv := &http.Server{
-		News:         store.NewNewsService(*localDir),
-		Services:     store.NewServicesService(*localDir),
-		OpeningHours: store.NewOpeningHoursService(*localDir),
-		PageGen:      generator.New(*localDir, store.NewConfigService(*localDir)),
+		News:         store.NewNewsService(pr.RepoDir),
+		Services:     store.NewServicesService(pr.RepoDir),
+		OpeningHours: store.NewOpeningHoursService(pr.RepoDir),
+		PageGen:      generator.New(pr.RepoDir, store.NewConfigService(pr.RepoDir)),
 		Ftp:          uploader.New(*sshHost, *sshPort, *sshUser, *sshPass, *sshDir),
 		Repo:         pr,
 	}

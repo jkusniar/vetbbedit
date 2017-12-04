@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -42,53 +43,77 @@ import (
 
 // TODO: clean this mess up to reuse code from page/store package
 
+const (
+	repoSubDir            = "repo"
+	currentCommitFileName = "current"
+)
+
 // PageGitRepo is remote GIT repo
 type PageGitRepo struct {
 	localDir, repoURL, repoBranch, repoToken string
 	projectID                                uint
 	tempArchiveFile                          string
+	currentCommitFile                        string
+	RepoDir                                  string
 }
 
 // NewPageGitRepo returns new initialized instance of PageGitRepo
 func NewPageGitRepo(localDir, repoURL, repoBranch, repoToken string, projectID uint) *PageGitRepo {
 	return &PageGitRepo{
-		localDir:        localDir,
-		repoURL:         repoURL,
-		repoBranch:      repoBranch,
-		projectID:       projectID,
-		repoToken:       repoToken,
-		tempArchiveFile: path.Join(os.TempDir(), "vetbbedit.tar.gz")}
+		localDir:          localDir,
+		repoURL:           repoURL,
+		repoBranch:        repoBranch,
+		projectID:         projectID,
+		repoToken:         repoToken,
+		tempArchiveFile:   path.Join(os.TempDir(), "vetbbedit.tar.gz"),
+		currentCommitFile: path.Join(localDir, currentCommitFileName),
+		RepoDir:           path.Join(localDir, repoSubDir)}
 }
 
 // Pull fetches latest project version from repository using REST API and extracts it to localDir
 func (p *PageGitRepo) Pull() error {
 
-	// recreate work directory
-	if err := recreateDir(p.localDir); err != nil {
-		return err
+	// get current commit SHA
+	currentSHA, err := ioutil.ReadFile(p.currentCommitFile)
+	if err != nil && !os.IsNotExist(err) {
+		errors.Wrap(err, "error reading current commit SHA")
 	}
 
 	// get latest commit SHA
-	sha, err := p.getLatestCommit()
+	serverSHA, err := p.getLatestCommit()
 	if err != nil {
 		return err
 	}
 
+	if strings.Compare(string(currentSHA), serverSHA) == 0 {
+		log.Println("Nothing to download, current repo up to date")
+		return nil
+	}
+
 	// get archive from server
-	if err := p.getRepoArchive(sha); err != nil {
+	if err := p.getRepoArchive(serverSHA); err != nil {
 		return err
+	}
+
+	// delete previous repo version
+	if err := os.RemoveAll(p.RepoDir); err != nil {
+		return errors.Wrap(err, "error deleting previous repo version")
 	}
 
 	// extract archive to work directory,
 	// filter out directory "web-xxxxx-xxxxx" from all paths while extracting
-	dirFilter := strings.Join([]string{"web", sha, sha}, "-")
-	if err := untar(p.localDir, p.tempArchiveFile, dirFilter); err != nil {
+	dirFilter := strings.Join([]string{"web", serverSHA, serverSHA}, "-")
+	if err := untar(p.RepoDir, p.tempArchiveFile, dirFilter); err != nil {
+		return err
+	}
+
+	// store current commit SHA
+	if err := p.storeCommitSHA(serverSHA); err != nil {
 		return err
 	}
 
 	// remove archive
 	return errors.Wrap(os.RemoveAll(p.tempArchiveFile), "error removing archive")
-
 }
 
 // Push pushes changes to repo using REST API
@@ -109,22 +134,22 @@ func (p *PageGitRepo) Push() error {
 	}
 
 	// load data files and create commit payload
-	configData, err := ioutil.ReadFile(path.Join(p.localDir, "config.json"))
+	configData, err := ioutil.ReadFile(path.Join(p.RepoDir, "config.json"))
 	if err != nil {
 		errors.Wrap(err, "error reading config.json")
 	}
 
-	newsData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "news.json"))
+	newsData, err := ioutil.ReadFile(path.Join(p.RepoDir, "data", "news.json"))
 	if err != nil {
 		errors.Wrap(err, "error reading news.json")
 	}
 
-	servicesData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "services.json"))
+	servicesData, err := ioutil.ReadFile(path.Join(p.RepoDir, "data", "services.json"))
 	if err != nil {
 		errors.Wrap(err, "error reading services.json")
 	}
 
-	hoursData, err := ioutil.ReadFile(path.Join(p.localDir, "data", "hours.json"))
+	hoursData, err := ioutil.ReadFile(path.Join(p.RepoDir, "data", "hours.json"))
 	if err != nil {
 		errors.Wrap(err, "error reading hours.json")
 	}
@@ -150,13 +175,30 @@ func (p *PageGitRepo) Push() error {
 
 	// send commit to server
 	URL := fmt.Sprintf("%s/projects/%d/repository/commits", p.repoURL, p.projectID)
-	if err := authenticatedPost(URL, p.repoToken, &b); err != nil {
+	resp, err := authenticatedPost(URL, p.repoToken, &b)
+	if err != nil {
 		return errors.Wrap(err, "error committing")
 	}
 
-	// TODO check if commit necessary to prevent empty commits
+	// store commit to file
+	var c commit
+	if err := json.NewDecoder(resp.Body).Decode(&c); err != nil {
+		return errors.Wrap(err, "error parsing JSON")
+	}
+	defer resp.Body.Close()
 
+	return p.storeCommitSHA(c.ID)
+}
+
+func (p *PageGitRepo) storeCommitSHA(sha string) error {
+	if err := ioutil.WriteFile(p.currentCommitFile, []byte(sha), 0664); err != nil {
+		return errors.Wrap(err, "error storing commit sha")
+	}
 	return nil
+}
+
+type commit struct {
+	ID string `json:"id"`
 }
 
 func (p *PageGitRepo) getLatestCommit() (string, error) {
@@ -164,10 +206,6 @@ func (p *PageGitRepo) getLatestCommit() (string, error) {
 	resp, err := authenticatedGet(URL, p.repoToken)
 	if err != nil {
 		return "", err
-	}
-
-	type commit struct {
-		ID string `json:"id"`
 	}
 
 	type branch struct {
@@ -314,10 +352,11 @@ func authenticatedGet(URL string, token string) (*http.Response, error) {
 }
 
 // authenticatedPost performs HTTP POST request with supplied auth token and content
-func authenticatedPost(URL, token string, content io.Reader) error {
+// returns http.Response if successful
+func authenticatedPost(URL, token string, content io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest("POST", URL, content)
 	if err != nil {
-		return errors.Wrap(err, "error while creating http request")
+		return nil, errors.Wrap(err, "error while creating http request")
 	}
 
 	req.Header.Add("PRIVATE-TOKEN", token)
@@ -333,21 +372,21 @@ func authenticatedPost(URL, token string, content io.Reader) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "error calling HTTP API")
+		return nil, errors.Wrap(err, "error calling HTTP API")
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
 		// dump response
+		defer resp.Body.Close()
 		dump, err := httputil.DumpResponse(resp, true)
 		if err != nil {
-			return errors.Wrap(err, "error dumping response")
+			return nil, errors.Wrap(err, "error dumping response")
 		}
 		fmt.Printf("RESP: %q\n", dump)
 
-		return errors.Errorf("bad HTTP status %d [%s]",
+		return nil, errors.Errorf("bad HTTP status %d [%s]",
 			resp.StatusCode, resp.Status)
 	}
 
-	return nil
+	return resp, nil
 }
