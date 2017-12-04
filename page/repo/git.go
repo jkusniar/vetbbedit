@@ -41,8 +41,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO: clean this mess up to reuse code from page/store package
-
 const (
 	repoSubDir            = "repo"
 	currentCommitFileName = "current"
@@ -85,6 +83,7 @@ func (p *PageGitRepo) Pull() error {
 		return err
 	}
 
+	// check if repo update is needed
 	if strings.Compare(string(currentSHA), serverSHA) == 0 {
 		log.Println("Nothing to download, current repo up to date")
 		return nil
@@ -134,24 +133,24 @@ func (p *PageGitRepo) Push() error {
 	}
 
 	// load data files and create commit payload
-	configData, err := ioutil.ReadFile(path.Join(p.RepoDir, "config.json"))
+	configData, err := loadFromFile(path.Join(p.RepoDir, "config.json"))
 	if err != nil {
-		errors.Wrap(err, "error reading config.json")
+		return err
 	}
 
-	newsData, err := ioutil.ReadFile(path.Join(p.RepoDir, "data", "news.json"))
+	newsData, err := loadFromFile(path.Join(p.RepoDir, "data", "news.json"))
 	if err != nil {
-		errors.Wrap(err, "error reading news.json")
+		return err
 	}
 
-	servicesData, err := ioutil.ReadFile(path.Join(p.RepoDir, "data", "services.json"))
+	servicesData, err := loadFromFile(path.Join(p.RepoDir, "data", "services.json"))
 	if err != nil {
-		errors.Wrap(err, "error reading services.json")
+		return err
 	}
 
-	hoursData, err := ioutil.ReadFile(path.Join(p.RepoDir, "data", "hours.json"))
+	hoursData, err := loadFromFile(path.Join(p.RepoDir, "data", "hours.json"))
 	if err != nil {
-		errors.Wrap(err, "error reading hours.json")
+		return err
 	}
 
 	pl := payload{
@@ -160,10 +159,10 @@ func (p *PageGitRepo) Push() error {
 		AuthorEmail:   "vetbbedit@veterinabb.sk",
 		AuthorName:    "vetbbedit",
 		Actions: []action{
-			action{Action: "update", FilePath: "config.json", Content: string(configData)},
-			action{Action: "update", FilePath: "data/news.json", Content: string(newsData)},
-			action{Action: "update", FilePath: "data/services.json", Content: string(servicesData)},
-			action{Action: "update", FilePath: "data/hours.json", Content: string(hoursData)},
+			action{Action: "update", FilePath: "config.json", Content: configData},
+			action{Action: "update", FilePath: "data/news.json", Content: newsData},
+			action{Action: "update", FilePath: "data/services.json", Content: servicesData},
+			action{Action: "update", FilePath: "data/hours.json", Content: hoursData},
 		},
 	}
 
@@ -182,12 +181,19 @@ func (p *PageGitRepo) Push() error {
 
 	// store commit to file
 	var c commit
-	if err := json.NewDecoder(resp.Body).Decode(&c); err != nil {
-		return errors.Wrap(err, "error parsing JSON")
+	if err := decodeJSONFromHttpResp(resp, &c); err != nil {
+		return err
 	}
-	defer resp.Body.Close()
 
 	return p.storeCommitSHA(c.ID)
+}
+
+func loadFromFile(fp string) (string, error) {
+	data, err := ioutil.ReadFile(fp)
+	if err != nil {
+		return "", errors.Wrapf(err, "error reading %s", fp)
+	}
+	return string(data), nil
 }
 
 func (p *PageGitRepo) storeCommitSHA(sha string) error {
@@ -214,10 +220,9 @@ func (p *PageGitRepo) getLatestCommit() (string, error) {
 	}
 
 	var b branch
-	if err := json.NewDecoder(resp.Body).Decode(&b); err != nil {
-		return "", errors.Wrap(err, "error parsing JSON")
+	if err := decodeJSONFromHttpResp(resp, &b); err != nil {
+		return "", err
 	}
-	defer resp.Body.Close()
 
 	return b.Commit.ID, nil
 }
@@ -276,9 +281,6 @@ func untar(dst, tarFile, filterDir string) error {
 			continue
 		}
 
-		// the target location where the dir/file should be created
-		//target := filepath.Join(dst, header.Name)
-
 		// custom target path: remove directory "web-<commitSHA>-<commitSHA>" from target path
 		rel, e := filepath.Rel(filterDir, header.Name)
 		if e != nil {
@@ -311,23 +313,21 @@ func untar(dst, tarFile, filterDir string) error {
 	}
 }
 
+// decodes JSON from http.Response.Body to v
+func decodeJSONFromHttpResp(resp *http.Response, v interface{}) error {
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+		return errors.Wrap(err, "error parsing JSON")
+	}
+	return nil
+}
+
 // create dir if not exists
 func createDir(dirName string) error {
 	if _, err := os.Stat(dirName); os.IsNotExist(err) {
 		return errors.Wrap(os.MkdirAll(dirName, 0755), "error creating directory")
 	}
 	return nil
-}
-
-// creates dir if not exists, delete+create if exists
-func recreateDir(dirName string) error {
-	if _, err := os.Stat(dirName); err == nil {
-		if err := os.RemoveAll(dirName); err != nil {
-			return errors.Wrap(err, "error removing directory")
-		}
-	}
-
-	return createDir(dirName)
 }
 
 // authenticatedGet performs HTTP GET request with supplied auth token
@@ -351,8 +351,8 @@ func authenticatedGet(URL string, token string) (*http.Response, error) {
 	return resp, nil
 }
 
-// authenticatedPost performs HTTP POST request with supplied auth token and content
-// returns http.Response if successful
+// authenticatedPost performs HTTP POST request with supplied auth token and content.
+// Returns http.Response if successful, error otherwise.
 func authenticatedPost(URL, token string, content io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest("POST", URL, content)
 	if err != nil {
@@ -362,27 +362,21 @@ func authenticatedPost(URL, token string, content io.Reader) (*http.Response, er
 	req.Header.Add("PRIVATE-TOKEN", token)
 	req.Header.Add("Content-Type", "application/json")
 
-	// DUMP REQUEST
-	// rd, err := httputil.DumpRequestOut(req, true)
-	// if err != nil {
-	// 	return errors.Wrap(err, "error dumping request")
-	// }
-	// fmt.Printf("REQ: %q\n", rd)
-	// DUMP REQUEST
-
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "error calling HTTP API")
 	}
 
-	if resp.StatusCode != 201 {
-		// dump response
+	fmt.Printf("statuscode : %d\n", resp.StatusCode)
+
+	if (resp.StatusCode < 200) || (resp.StatusCode > 299) {
+		// dump response & return error
 		defer resp.Body.Close()
 		dump, err := httputil.DumpResponse(resp, true)
 		if err != nil {
 			return nil, errors.Wrap(err, "error dumping response")
 		}
-		fmt.Printf("RESP: %q\n", dump)
+		log.Printf("RESP: %q\n", dump)
 
 		return nil, errors.Errorf("bad HTTP status %d [%s]",
 			resp.StatusCode, resp.Status)
