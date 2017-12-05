@@ -2,3 +2,4 @@
 /vetbbedit
 *.sublime-project
 *.sublime-workspace
+cmd/vetbbedit/vetbbedit.app
