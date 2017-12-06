@@ -23,6 +23,22 @@ go install github.com/jkusniar/vetbbedit/cmd/vetbbedit
 $ vetbbedit [flags]
 ```
 
+### MacOS Application bundle
+
+* navigate to `cmd/vetbbedit` and run `macpack build` (development dependency)
+* modify generated `vetbbedit.app/Contents/Info.plist` if needed (e.g. add custom environment variables):
+```
+	<key>LSEnvironment</key>
+	<dict>
+		<key>VETBB_REPO_BRANCH</key>
+		<string>test</string>
+		<key>VETBB_REPO_TOKEN</key>
+		<string>MY_TOKEN</string>
+	</dict>
+```
+* copy vetbbedit.app to `~/Applications/`
+* run from launchpad
+
 ## Development
 
 Requires `make` utility. Install build dependencies if building first time:
